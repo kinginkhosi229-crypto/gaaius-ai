@@ -1162,40 +1162,88 @@ async def update_project_files(project_id: str, files: dict, user = Depends(get_
 
 @api_router.post("/build/generate")
 async def build_generate(data: dict, user = Depends(get_current_user)):
-    """Generate code for vibe coding builder"""
+    """Generate REAL, COMPLETE web applications like YouTube, Spotify, etc."""
     try:
         prompt = data.get("prompt", "")
         current_code = data.get("current_code", "")
         
-        system_prompt = """You are an expert web developer helping build React applications.
-        Generate or modify code based on the user's request.
-        Always output valid React/JSX code that can be rendered.
-        Use Tailwind CSS for styling.
-        Output ONLY the code, no explanations or markdown."""
-        
+        # Enhanced system prompt for building REAL applications
+        system_prompt = """You are GAAIUS AI Builder - an expert full-stack developer that creates REAL, COMPLETE, PRODUCTION-READY web applications.
+
+When a user asks to build something like "YouTube", "Spotify", "Netflix", "Twitter", "Instagram", "Amazon", or any website/app:
+
+YOU MUST CREATE A FULLY FUNCTIONAL, COMPLETE APPLICATION with:
+1. Full HTML structure with proper meta tags
+2. Complete UI with all sections (header, navigation, main content, sidebar, footer)
+3. Real-looking data and content (sample videos, music, products, posts)
+4. Interactive features with JavaScript
+5. Professional styling with Tailwind CSS
+6. Responsive design that works on all devices
+7. Working buttons, search bars, forms, modals
+8. Sample images using placeholder services (picsum.photos, placehold.co)
+
+OUTPUT FORMAT: Return ONLY a complete HTML file that includes:
+- <!DOCTYPE html> declaration
+- All HTML structure
+- Tailwind CSS via CDN
+- Embedded <style> for custom CSS
+- Embedded <script> for JavaScript functionality
+- NO markdown, NO explanations, NO code blocks - just pure HTML
+
+IMPORTANT RULES:
+1. Create REAL-LOOKING interfaces, not demos or wireframes
+2. Add sample content that looks authentic
+3. Include hover effects, transitions, animations
+4. Make navigation, buttons, and links functional
+5. Add modals, dropdowns, and interactive elements
+6. Use modern design patterns
+7. Include proper icons (use inline SVGs or Font Awesome via CDN)
+8. Add realistic placeholder images
+9. Create complete pages, not snippets
+
+For apps like YouTube: Add video thumbnails, video grid, sidebar, search, channel info, comments section
+For apps like Spotify: Add music player, playlists, album art, play controls, sidebar navigation
+For apps like Netflix: Add hero banner, content rows, categories, hover previews
+For apps like Twitter: Add tweet feed, compose box, trending sidebar, navigation
+For apps like Instagram: Add photo grid, stories, profile section, bottom navigation
+For apps like Amazon: Add product grid, search, categories, cart, product cards
+
+OUTPUT ONLY THE COMPLETE HTML CODE - nothing else."""
+
         messages = [
             {"role": "system", "content": system_prompt},
         ]
         
-        if current_code:
-            messages.append({"role": "user", "content": f"Current code:\n```\n{current_code}\n```\n\nModify it to: {prompt}"})
+        if current_code and len(current_code) > 100:
+            messages.append({"role": "user", "content": f"Current code:\n{current_code}\n\nUpdate it to: {prompt}\n\nReturn the complete updated HTML."})
         else:
-            messages.append({"role": "user", "content": f"Create a React component: {prompt}"})
+            messages.append({"role": "user", "content": f"Build this: {prompt}\n\nCreate a complete, production-ready HTML application."})
         
         completion = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=messages,
-            temperature=0.3,
-            max_tokens=4096
+            temperature=0.4,
+            max_tokens=8000
         )
         
         code = completion.choices[0].message.content
-        # Clean up code blocks if present
+        
+        # Clean up code blocks if AI added them
         if "```" in code:
             import re
-            code_match = re.search(r'```(?:jsx?|tsx?|javascript|typescript)?\n?([\s\S]*?)```', code)
+            code_match = re.search(r'```(?:html)?\n?([\s\S]*?)```', code)
             if code_match:
                 code = code_match.group(1)
+        
+        # Ensure it starts with DOCTYPE
+        code = code.strip()
+        if not code.lower().startswith('<!doctype'):
+            # Try to find the HTML start
+            html_start = code.lower().find('<!doctype')
+            if html_start == -1:
+                html_start = code.lower().find('<html')
+            if html_start > 0:
+                code = code[html_start:]
         
         return {"code": code.strip(), "model_used": "Groq Llama 3.3"}
         
