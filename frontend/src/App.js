@@ -309,7 +309,7 @@ const GenerationResult = ({ data, type }) => {
   );
 };
 
-// Build Page Component - GAAIUS AI Builder (Simplified: AI Chat + Live Preview)
+// Build Page Component - GAAIUS AI Builder (Full-featured: AI Chat + Image Gen + Live Preview)
 const BuildPage = ({ showSidebar = false, navigate, user, showAuth, showPro, showProfile, logout }) => {
   const [prompt, setPrompt] = useState("");
   const [htmlContent, setHtmlContent] = useState(`<!DOCTYPE html>
@@ -345,25 +345,110 @@ const BuildPage = ({ showSidebar = false, navigate, user, showAuth, showPro, sho
 </body>
 </html>`);
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
+  const [generatedImages, setGeneratedImages] = useState([]);
+  const [activeTab, setActiveTab] = useState("chat");
   const nav = useNavigate();
+
+  // Generate image using Pollinations AI (free, no API key needed)
+  const generateImage = async (imagePrompt) => {
+    setImageLoading(true);
+    try {
+      const encodedPrompt = encodeURIComponent(imagePrompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&nologo=true`;
+      
+      // Pre-load the image to ensure it's generated
+      const img = new window.Image();
+      img.onload = () => {
+        setGeneratedImages(prev => [{
+          id: Date.now(),
+          prompt: imagePrompt,
+          url: imageUrl,
+          timestamp: new Date().toISOString()
+        }, ...prev]);
+        setChatHistory(prev => [...prev, { 
+          role: "assistant", 
+          content: `🎨 Image generated! Click to copy the URL and use it in your code.\n\nURL: ${imageUrl}`,
+          imageUrl: imageUrl
+        }]);
+        toast.success("Image generated!");
+        setImageLoading(false);
+      };
+      img.onerror = () => {
+        toast.error("Image generation failed");
+        setImageLoading(false);
+      };
+      img.src = imageUrl;
+    } catch (error) {
+      toast.error("Image generation failed");
+      setImageLoading(false);
+    }
+  };
+
+  // Copy image URL to clipboard
+  const copyImageUrl = (url) => {
+    navigator.clipboard.writeText(url);
+    toast.success("Image URL copied! Paste it in your code.");
+  };
+
+  // Insert image into HTML
+  const insertImageIntoCode = (url) => {
+    const imgTag = `<img src="${url}" alt="Generated image" class="w-full max-w-md mx-auto rounded-lg shadow-lg" />`;
+    setHtmlContent(prev => {
+      // Insert before </main> or </body>
+      if (prev.includes('</main>')) {
+        return prev.replace('</main>', `  ${imgTag}\n</main>`);
+      }
+      return prev.replace('</body>', `  ${imgTag}\n</body>`);
+    });
+    toast.success("Image inserted into your code!");
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim() || loading) return;
-    setLoading(true);
+    
+    const promptLower = prompt.toLowerCase();
+    
+    // Check if user wants to generate an image/logo/icon
+    const isImageRequest = promptLower.includes('image') || 
+                          promptLower.includes('logo') || 
+                          promptLower.includes('icon') ||
+                          promptLower.includes('picture') ||
+                          promptLower.includes('graphic') ||
+                          promptLower.includes('illustration') ||
+                          promptLower.includes('banner') ||
+                          promptLower.includes('background') ||
+                          promptLower.includes('photo') ||
+                          promptLower.includes('generate an image') ||
+                          promptLower.includes('create an image') ||
+                          promptLower.includes('make an image') ||
+                          promptLower.includes('design a logo') ||
+                          promptLower.includes('create a logo');
+    
     setChatHistory(prev => [...prev, { role: "user", content: prompt }]);
+    
+    if (isImageRequest) {
+      // Use Pollinations AI for image generation
+      setPrompt("");
+      await generateImage(prompt);
+      return;
+    }
+    
+    // Otherwise, use Groq for code generation
+    setLoading(true);
     
     try {
       const res = await api.post("/build/generate", { prompt, current_code: htmlContent });
       if (res.data.code) {
         setHtmlContent(res.data.code);
-        setChatHistory(prev => [...prev, { role: "assistant", content: "Done! I've updated your website. Check the preview!" }]);
+        setChatHistory(prev => [...prev, { role: "assistant", content: "✅ Done! I've updated your website. Check the preview!" }]);
         toast.success("Website updated!");
       }
     } catch (error) {
-      setChatHistory(prev => [...prev, { role: "assistant", content: "I encountered an issue. Let me try again..." }]);
+      setChatHistory(prev => [...prev, { role: "assistant", content: "❌ I encountered an issue. Let me try again..." }]);
       toast.error("Generation failed");
     } finally {
       setLoading(false);
@@ -374,7 +459,7 @@ const BuildPage = ({ showSidebar = false, navigate, user, showAuth, showPro, sho
   const handleSaveToProject = async () => {
     if (!projectName.trim()) return;
     try {
-      const res = await api.post("/projects", { name: projectName, description: "Created from Build", type: "web" });
+      const res = await api.post("/projects", { name: projectName, description: "Created from AI Builder", type: "web" });
       await api.put(`/projects/${res.data.id}/files`, { "index.html": htmlContent });
       toast.success("Saved to project!");
       setShowSaveDialog(false);
@@ -413,8 +498,9 @@ const BuildPage = ({ showSidebar = false, navigate, user, showAuth, showPro, sho
           </Button>
           <div className="h-4 w-px bg-white/20" />
           <h2 className="font-secondary text-sm font-bold flex items-center gap-2">
-            <Hammer className="w-4 h-4 text-primary" /> GAAIUS AI Builder
+            <Hammer className="w-4 h-4 text-orange-400" /> GAAIUS AI Builder
           </h2>
+          <span className="text-xs text-muted-foreground">(Powered by Groq + Pollinations AI)</span>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={downloadProject} variant="outline" className="h-7 text-xs">
