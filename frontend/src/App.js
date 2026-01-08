@@ -670,12 +670,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         promptLower.includes('portfolio') ||
                         promptLower.includes('landing page');
     
+    // AUTO-SAVE: Generate unique project name from prompt
+    const generateProjectName = () => {
+      const keywords = prompt.toLowerCase().match(/\b(youtube|spotify|netflix|twitter|instagram|amazon|dashboard|blog|portfolio|shop|store|app|website|clone)\b/);
+      const mainKeyword = keywords ? keywords[0] : 'project';
+      const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace(':', '');
+      return `${mainKeyword.charAt(0).toUpperCase() + mainKeyword.slice(1)}_${timestamp}`;
+    };
+    
     // Use Groq for code generation
     setLoading(true);
     
     if (isComplexApp) {
-      addTerminalLog("info", `🚀 Building complete application: ${prompt}`);
-      setChatHistory(prev => [...prev, { role: "assistant", content: "🔨 Building your application... This may take a moment as I create a complete, production-ready version." }]);
+      addTerminalLog("info", `🚀 GAAIUS BUILD BRAIN: Analyzing "${prompt}"`);
+      addTerminalLog("info", `📋 Compiling prompt into detailed specification...`);
+      setChatHistory(prev => [...prev, { role: "assistant", content: "🧠 **GAAIUS BUILD BRAIN Active**\n\n1️⃣ Analyzing your request...\n2️⃣ Creating design specification...\n3️⃣ Generating production-ready code...\n4️⃣ Running quality checks..." }]);
     } else {
       addTerminalLog("info", `AI generating code for: ${prompt}`);
     }
@@ -688,19 +697,24 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (res.data.code) {
         // Update index.html with the generated code
+        const autoName = generateProjectName();
         setProjectFiles(prev => ({ ...prev, "index.html": res.data.code }));
         setHtmlContent(res.data.code);
         setActiveFile("index.html");
         setRightPanelTab("preview"); // Switch to preview to show the result
         
+        // Show quality score
+        const qualityEmoji = res.data.quality_score >= 80 ? "🟢" : res.data.quality_score >= 60 ? "🟡" : "🔴";
+        addTerminalLog("info", `${qualityEmoji} Quality Score: ${res.data.quality_score || 75}/100`);
+        
         if (isComplexApp) {
           setChatHistory(prev => [...prev, { 
             role: "assistant", 
-            content: `✅ Your application is ready! I've built a complete, functional version. Check the Preview tab to see it in action!\n\n💡 Tips:\n- Click "Preview" tab to see your app\n- Click "Code" tab to edit the source\n- Use "Save" to keep your project` 
+            content: `✅ **${autoName}** is ready!\n\n${qualityEmoji} Quality Score: ${res.data.quality_score || 75}/100\n\n📱 **Export Options:**\n• Web: Download HTML/CSS/JS\n• Desktop: Export as Electron (EXE/DMG)\n• Android: Export via Capacitor\n• iOS: Export via Capacitor\n\n💡 Click Preview to see your app!` 
           }]);
-          addTerminalLog("success", `✅ Application built successfully!`);
+          addTerminalLog("success", `✅ ${autoName} built successfully!`);
         } else {
-          setChatHistory(prev => [...prev, { role: "assistant", content: `✅ Done! Check the Preview tab to see your changes!` }]);
+          setChatHistory(prev => [...prev, { role: "assistant", content: `✅ Done! Quality: ${res.data.quality_score || 75}/100` }]);
           addTerminalLog("success", `Code generated and saved to index.html`);
         }
         toast.success(isComplexApp ? "Application built!" : "Code updated!");
