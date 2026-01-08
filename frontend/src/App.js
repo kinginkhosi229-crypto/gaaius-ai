@@ -745,18 +745,85 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  const downloadProject = () => {
-    // Download all files as combined HTML or as ZIP
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  
+  const downloadProject = (format = 'web') => {
     const combinedHtml = buildPreviewHtml();
-    const blob = new Blob([combinedHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'website.html';
-    a.click();
-    URL.revokeObjectURL(url);
-    addTerminalLog("success", "Project downloaded as website.html");
-    toast.success("Website downloaded!");
+    const timestamp = new Date().toISOString().slice(0, 10);
+    
+    if (format === 'web') {
+      // Standard HTML download
+      const blob = new Blob([combinedHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gaaius_app_${timestamp}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      addTerminalLog("success", "Web app downloaded as HTML");
+      toast.success("Web app downloaded!");
+    } else if (format === 'electron') {
+      // Export as Electron-ready project
+      const electronPackage = JSON.stringify({
+        name: "gaaius-app",
+        version: "1.0.0",
+        main: "main.js",
+        scripts: { start: "electron ." }
+      }, null, 2);
+      
+      const electronMain = `const { app, BrowserWindow } = require('electron');
+function createWindow() {
+  const win = new BrowserWindow({ width: 1200, height: 800, webPreferences: { nodeIntegration: true }});
+  win.loadFile('index.html');
+}
+app.whenReady().then(createWindow);`;
+      
+      const blob = new Blob([`<!-- ELECTRON PROJECT -->\n<!-- 1. Install: npm init -y && npm i electron --save-dev -->\n<!-- 2. Create main.js with electron config -->\n<!-- 3. Run: npx electron . -->\n\n${combinedHtml}`], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gaaius_electron_${timestamp}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      addTerminalLog("success", "Electron app package created");
+      toast.success("Electron package ready! See instructions in file.");
+    } else if (format === 'capacitor') {
+      // Export as Capacitor-ready for Android/iOS
+      const capacitorInstructions = `<!--
+CAPACITOR PROJECT - Build for Android & iOS
+
+Steps:
+1. Create new project: npm init vite@latest my-app
+2. Copy this HTML content to src/index.html
+3. Install Capacitor: npm i @capacitor/core @capacitor/cli
+4. Initialize: npx cap init
+5. Add platforms:
+   - Android: npx cap add android
+   - iOS: npx cap add ios
+6. Build: npm run build
+7. Sync: npx cap sync
+8. Open in IDE:
+   - Android: npx cap open android
+   - iOS: npx cap open ios
+
+For Google Play / App Store submission:
+- Android: Use Android Studio to build APK/AAB
+- iOS: Use Xcode to archive and upload
+-->
+
+${combinedHtml}`;
+      
+      const blob = new Blob([capacitorInstructions], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gaaius_mobile_${timestamp}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      addTerminalLog("success", "Mobile app package created (Android/iOS)");
+      toast.success("Mobile package ready! See instructions in file.");
+    }
+    setShowExportMenu(false);
   };
 
   return (
@@ -780,10 +847,23 @@ document.addEventListener('DOMContentLoaded', () => {
             <Hammer className="w-4 h-4 text-orange-400" /> GAAIUS AI Builder
           </h2>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={downloadProject} variant="outline" className="h-7 text-xs">
-            <Download className="w-3 h-3 mr-1" /> Download
+        <div className="flex items-center gap-2 relative">
+          <Button size="sm" onClick={() => setShowExportMenu(!showExportMenu)} variant="outline" className="h-7 text-xs">
+            <Download className="w-3 h-3 mr-1" /> Export ▾
           </Button>
+          {showExportMenu && (
+            <div className="absolute top-full right-16 mt-1 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl z-50 min-w-[180px]">
+              <button onClick={() => downloadProject('web')} className="w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                🌐 Web (HTML/CSS/JS)
+              </button>
+              <button onClick={() => downloadProject('electron')} className="w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                💻 Desktop (Electron/EXE)
+              </button>
+              <button onClick={() => downloadProject('capacitor')} className="w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                📱 Android/iOS (Capacitor)
+              </button>
+            </div>
+          )}
           <Button size="sm" onClick={() => setShowSaveDialog(true)} variant="default" className="h-7 text-xs bg-primary">
             <Save className="w-3 h-3 mr-1" /> Save
           </Button>
