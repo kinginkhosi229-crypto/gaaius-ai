@@ -2705,6 +2705,7 @@ function App() {
       <Routes>
         <Route path="/*" element={<MainApp />} />
       </Routes>
+      <PWAInstallBanner />
     </BrowserRouter>
   );
 }
