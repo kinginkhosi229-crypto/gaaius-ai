@@ -2006,6 +2006,11 @@ const MainApp = () => {
       <AuthModal open={showAuth} onClose={() => setShowAuth(false)} />
       <ProfileModal open={showProfile} onClose={() => setShowProfile(false)} />
       <ProModal open={showPro} onClose={() => setShowPro(false)} />
+      <VideoAdModal 
+        open={showVideoAd} 
+        onClose={() => setShowVideoAd(false)} 
+        onUpgrade={() => { setShowVideoAd(false); setShowPro(true); }} 
+      />
       
       <div className="h-screen flex bg-[#050505] overflow-hidden">
         <Toaster position="top-center" theme="dark" />
