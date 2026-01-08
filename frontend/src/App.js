@@ -783,26 +783,71 @@ const DocumentStudio = ({ onBack }) => {
       </div>
       
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Document Types & History */}
-        <div className="w-64 border-r border-white/10 flex flex-col bg-[#0d0d0d]">
+        {/* Left Sidebar - Document Types & Templates */}
+        <div className="w-72 border-r border-white/10 flex flex-col bg-[#0d0d0d]">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="w-full grid grid-cols-2 m-2 bg-white/5">
-              <TabsTrigger value="create" className="text-xs">Create</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-3 m-2 bg-white/5">
+              <TabsTrigger value="create" className="text-xs">Types</TabsTrigger>
+              <TabsTrigger value="templates" className="text-xs">Templates</TabsTrigger>
               <TabsTrigger value="history" className="text-xs">Files</TabsTrigger>
             </TabsList>
             
             <TabsContent value="create" className="flex-1 p-3 space-y-2 overflow-auto">
               <p className="text-xs text-muted-foreground uppercase font-mono mb-2">Document Type</p>
-              {documentTypes.map(dt => (
-                <button
-                  key={dt.id}
-                  onClick={() => setDocumentType(dt.id)}
-                  className={`w-full flex items-center gap-2 p-2 rounded-lg text-sm transition ${documentType === dt.id ? "bg-primary/20 border border-primary/40" : "hover:bg-white/5"}`}
-                >
-                  <span>{dt.icon}</span>
-                  <span>{dt.label}</span>
-                </button>
-              ))}
+              <ScrollArea className="h-[calc(100vh-200px)]">
+                {documentTypes.map(dt => (
+                  <button
+                    key={dt.id}
+                    onClick={() => setDocumentType(dt.id)}
+                    className={`w-full flex items-center gap-2 p-2.5 rounded-lg text-sm transition mb-1 ${documentType === dt.id ? "bg-cyan-500/20 border border-cyan-500/40" : "hover:bg-white/5"}`}
+                  >
+                    <span className="text-lg">{dt.icon}</span>
+                    <div className="text-left">
+                      <span className="block">{dt.label}</span>
+                      <span className="text-xs text-muted-foreground">{dt.description}</span>
+                    </div>
+                  </button>
+                ))}
+              </ScrollArea>
+              
+              {documentType === "invoice" && (
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <p className="text-xs text-muted-foreground uppercase font-mono mb-2">Invoice Type</p>
+                  <Select value={invoiceType} onValueChange={setInvoiceType}>
+                    <SelectTrigger className="w-full bg-white/5 border-white/10 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {invoiceTypes.map(it => (
+                        <SelectItem key={it.id} value={it.id}>
+                          <div>
+                            <span>{it.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {invoiceTypes.find(t => t.id === invoiceType)?.description}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="templates" className="flex-1 p-3 overflow-auto">
+              <p className="text-xs text-muted-foreground uppercase font-mono mb-2">Quick Templates</p>
+              <ScrollArea className="h-[calc(100vh-200px)]">
+                {(quickTemplates[documentType] || quickTemplates.invoice).map((template, i) => (
+                  <button
+                    key={i}
+                    onClick={() => applyTemplate(template)}
+                    className="w-full text-left p-3 rounded-lg hover:bg-white/5 border border-white/5 mb-2 transition"
+                  >
+                    <p className="text-sm font-medium text-cyan-400">{template.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{template.prompt.slice(0, 80)}...</p>
+                  </button>
+                ))}
+              </ScrollArea>
             </TabsContent>
             
             <TabsContent value="history" className="flex-1 p-3 overflow-auto">
@@ -812,10 +857,10 @@ const DocumentStudio = ({ onBack }) => {
               ) : (
                 <div className="space-y-2">
                   {generatedFiles.map((file, i) => (
-                    <div key={i} className="glass-light rounded-lg p-2 text-xs">
+                    <div key={i} className="glass-light rounded-lg p-3 text-xs">
                       <p className="font-medium truncate">{file.name}</p>
                       <p className="text-muted-foreground">{new Date(file.timestamp).toLocaleTimeString()}</p>
-                      <Button size="sm" variant="ghost" onClick={() => downloadDocument(file)} className="w-full mt-1 h-6 text-xs">
+                      <Button size="sm" variant="ghost" onClick={() => downloadDocument(file)} className="w-full mt-2 h-7 text-xs bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400">
                         <Download className="w-3 h-3 mr-1" /> Download
                       </Button>
                     </div>
@@ -830,39 +875,54 @@ const DocumentStudio = ({ onBack }) => {
         <div className="w-96 border-r border-white/10 flex flex-col bg-[#0a0a0a]">
           <div className="p-4 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
+              <Sparkles className="w-5 h-5 text-cyan-400" />
               <span className="font-semibold">AI Document Assistant</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Tell me what document to create or edit</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Creating: <span className="text-cyan-400">{documentTypes.find(d => d.id === documentType)?.label}</span>
+              {documentType === "invoice" && <span className="text-muted-foreground"> ({invoiceTypes.find(t => t.id === invoiceType)?.label})</span>}
+            </p>
           </div>
           
           <ScrollArea className="flex-1 p-4">
             {chatHistory.length === 0 ? (
-              <div className="text-center py-8">
-                <FileCode className="w-12 h-12 text-cyan-400/50 mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground mb-4">What document would you like to create?</p>
+              <div className="text-center py-6">
+                <div className="w-16 h-16 rounded-2xl bg-cyan-500/20 flex items-center justify-center mx-auto mb-4">
+                  <FileCode className="w-8 h-8 text-cyan-400" />
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">Describe your {documentTypes.find(d => d.id === documentType)?.label.toLowerCase()}</p>
                 <div className="space-y-2 text-xs text-left">
-                  <p className="text-primary/70 cursor-pointer hover:text-primary p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a professional invoice for web development services, $5000, due in 30 days")}>
-                    💡 "Create a professional invoice for $5000"
-                  </p>
-                  <p className="text-primary/70 cursor-pointer hover:text-primary p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Write a business proposal for a mobile app development project")}>
-                    💡 "Write a business proposal for an app"
-                  </p>
-                  <p className="text-primary/70 cursor-pointer hover:text-primary p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a service agreement contract for software consulting")}>
-                    💡 "Create a service agreement contract"
-                  </p>
-                  <p className="text-primary/70 cursor-pointer hover:text-primary p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Generate an Excel budget spreadsheet for a startup")}>
-                    💡 "Generate a budget spreadsheet"
-                  </p>
-                  <p className="text-primary/70 cursor-pointer hover:text-primary p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a modern CV/resume for a software developer")}>
-                    💡 "Create a CV/resume"
-                  </p>
+                  {documentType === "invoice" ? (
+                    <>
+                      <p className="text-cyan-400/80 cursor-pointer hover:text-cyan-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a professional invoice for web development services. Client: ABC Company, Project: Website Redesign, Amount: $5,000, Payment terms: Net 30")}>
+                        💡 Web development invoice - $5,000
+                      </p>
+                      <p className="text-cyan-400/80 cursor-pointer hover:text-cyan-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a freelance design invoice. Client: XYZ Marketing, Services: Logo design, Brand guidelines, Social media kit. Total: $1,200, Due in 15 days")}>
+                        💡 Freelance design invoice - $1,200
+                      </p>
+                      <p className="text-cyan-400/80 cursor-pointer hover:text-cyan-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a consulting services invoice with hourly rate. Client: StartupCo, Rate: $150/hr, Hours: 25, Total: $3,750. Include strategy sessions and market analysis")}>
+                        💡 Consulting hourly invoice - $3,750
+                      </p>
+                      <p className="text-cyan-400/80 cursor-pointer hover:text-cyan-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a recurring monthly SaaS subscription invoice. Client: Enterprise Ltd, Plan: Professional ($299), Addons: Priority support ($50), Storage ($25), Total: $374/month")}>
+                        💡 SaaS subscription invoice - $374/mo
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-cyan-400/80 cursor-pointer hover:text-cyan-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt(`Create a professional ${documentTypes.find(d => d.id === documentType)?.label.toLowerCase()} for a technology company`)}>
+                        💡 "{documentTypes.find(d => d.id === documentType)?.label} for tech company"
+                      </p>
+                      <p className="text-cyan-400/80 cursor-pointer hover:text-cyan-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt(`Create a detailed ${documentTypes.find(d => d.id === documentType)?.label.toLowerCase()} with professional formatting`)}>
+                        💡 "Detailed professional {documentTypes.find(d => d.id === documentType)?.label.toLowerCase()}"
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="space-y-3">
                 {chatHistory.map((msg, i) => (
-                  <div key={i} className={`p-3 rounded-xl text-sm ${msg.role === "user" ? "bg-primary/20 ml-4" : "bg-white/5 mr-4"}`}>
+                  <div key={i} className={`p-3 rounded-xl text-sm ${msg.role === "user" ? "bg-cyan-500/20 ml-4 border border-cyan-500/20" : "bg-white/5 mr-4"}`}>
                     <p className="text-xs text-muted-foreground mb-1">{msg.role === "user" ? "You" : "GAAIUS AI"}</p>
                     {msg.content}
                   </div>
@@ -876,7 +936,7 @@ const DocumentStudio = ({ onBack }) => {
               <Input
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the document..."
+                placeholder={`Describe your ${documentType}...`}
                 className="flex-1 bg-white/5 border-white/10"
                 onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
               />
