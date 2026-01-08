@@ -2049,62 +2049,6 @@ Generate a COMPLETE, HIGH-QUALITY implementation."""
     except Exception as e:
         logger.error(f"Build generate error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-4. Make navigation, buttons, and links functional
-5. Add modals, dropdowns, and interactive elements
-6. Use modern design patterns
-7. Include proper icons (use inline SVGs or Font Awesome via CDN)
-8. Add realistic placeholder images
-9. Create complete pages, not snippets
-
-For apps like YouTube: Add video thumbnails, video grid, sidebar, search, channel info, comments section
-For apps like Spotify: Add music player, playlists, album art, play controls, sidebar navigation
-For apps like Netflix: Add hero banner, content rows, categories, hover previews
-For apps like Twitter: Add tweet feed, compose box, trending sidebar, navigation
-For apps like Instagram: Add photo grid, stories, profile section, bottom navigation
-For apps like Amazon: Add product grid, search, categories, cart, product cards
-
-OUTPUT ONLY THE COMPLETE HTML CODE - nothing else."""
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-        ]
-        
-        if current_code and len(current_code) > 100:
-            messages.append({"role": "user", "content": f"Current code:\n{current_code}\n\nUpdate it to: {prompt}\n\nReturn the complete updated HTML."})
-        else:
-            messages.append({"role": "user", "content": f"Build this: {prompt}\n\nCreate a complete, production-ready HTML application."})
-        
-        completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            temperature=0.4,
-            max_tokens=8000
-        )
-        
-        code = completion.choices[0].message.content
-        
-        # Clean up code blocks if AI added them
-        if "```" in code:
-            import re
-            code_match = re.search(r'```(?:html)?\n?([\s\S]*?)```', code)
-            if code_match:
-                code = code_match.group(1)
-        
-        # Ensure it starts with DOCTYPE
-        code = code.strip()
-        if not code.lower().startswith('<!doctype'):
-            # Try to find the HTML start
-            html_start = code.lower().find('<!doctype')
-            if html_start == -1:
-                html_start = code.lower().find('<html')
-            if html_start > 0:
-                code = code[html_start:]
-        
-        return {"code": code.strip(), "model_used": "Groq Llama 3.3"}
-        
-    except Exception as e:
-        logger.error(f"Build generate error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/build/generate-full")
 async def build_generate_full(data: dict, user = Depends(get_current_user)):
