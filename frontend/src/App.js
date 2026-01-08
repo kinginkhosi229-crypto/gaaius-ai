@@ -639,7 +639,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <h2 className="font-secondary text-sm font-bold flex items-center gap-2">
             <Hammer className="w-4 h-4 text-orange-400" /> GAAIUS AI Builder
           </h2>
-          <span className="text-xs text-muted-foreground">(Powered by Groq + Pollinations AI)</span>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={downloadProject} variant="outline" className="h-7 text-xs">
