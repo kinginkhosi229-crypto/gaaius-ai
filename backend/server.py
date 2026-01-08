@@ -1290,48 +1290,70 @@ Output ONLY the CSV data, no explanations."""
             styles = getSampleStyleSheet()
             styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal'], alignment=TA_RIGHT))
             styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
-            styles.add(ParagraphStyle(name='DocTitle', parent=styles['Heading1'], fontSize=24, spaceAfter=20))
-            styles.add(ParagraphStyle(name='CompanyName', parent=styles['Heading2'], fontSize=16, textColor=colors.HexColor('#333333')))
+            styles.add(ParagraphStyle(name='DocTitle', parent=styles['Heading1'], fontSize=28, spaceAfter=5, textColor=colors.HexColor('#333333')))
+            styles.add(ParagraphStyle(name='CompanyName', parent=styles['Heading2'], fontSize=18, textColor=colors.HexColor('#333333'), spaceAfter=3))
+            styles.add(ParagraphStyle(name='SmallText', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#666666')))
+            styles.add(ParagraphStyle(name='SectionHeader', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#666666'), spaceBefore=15, spaceAfter=5))
             
             story = []
             
             if doc_type == "invoice":
-                # INVOICE header
-                story.append(Paragraph("INVOICE", styles['DocTitle']))
-                story.append(Spacer(1, 10))
-                
-                # Company and Invoice details
-                company = doc_data.get("company", {})
-                story.append(Paragraph(f"<b>{company.get('name', 'Company Name')}</b>", styles['CompanyName']))
-                story.append(Paragraph(company.get('address', ''), styles['Normal']))
-                story.append(Paragraph(company.get('city', ''), styles['Normal']))
-                story.append(Paragraph(f"Email: {company.get('email', '')} | Phone: {company.get('phone', '')}", styles['Normal']))
-                story.append(Spacer(1, 20))
-                
-                # Invoice info table
-                invoice_info = [
-                    ["Invoice #:", doc_data.get('invoice_number', 'INV-001')],
-                    ["Date:", doc_data.get('date', '')],
-                    ["Due Date:", doc_data.get('due_date', '')]
+                # Professional Invoice like the example images
+                # Header with company name and INVOICE title
+                header_data = [
+                    [Paragraph(f"<b>{doc_data.get('company', {}).get('name', 'Your Company')}</b>", styles['CompanyName']), 
+                     Paragraph("<b>INVOICE</b>", ParagraphStyle('InvTitle', parent=styles['Normal'], fontSize=32, alignment=TA_RIGHT, textColor=colors.HexColor('#2E7D32')))]
                 ]
-                info_table = Table(invoice_info, colWidths=[100, 200])
-                info_table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                header_table = Table(header_data, colWidths=[300, 190])
+                header_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ]))
-                story.append(info_table)
+                story.append(header_table)
+                
+                # Company details
+                company = doc_data.get("company", {})
+                story.append(Paragraph(company.get('address', '123 Business Street'), styles['SmallText']))
+                story.append(Paragraph(company.get('city', 'City, State 12345'), styles['SmallText']))
+                story.append(Paragraph(f"Phone: {company.get('phone', '(555) 123-4567')} | Email: {company.get('email', 'info@company.com')}", styles['SmallText']))
+                story.append(Spacer(1, 15))
+                
+                # Green accent bar with invoice details
+                invoice_bar = [
+                    [Paragraph(f"<b>Invoice No.</b><br/>{doc_data.get('invoice_number', 'INV-001')}", ParagraphStyle('BarText', fontSize=9, textColor=colors.white)),
+                     Paragraph(f"<b>Issue Date</b><br/>{doc_data.get('date', 'Jan 15, 2024')}", ParagraphStyle('BarText', fontSize=9, textColor=colors.white)),
+                     Paragraph(f"<b>Due Date</b><br/>{doc_data.get('due_date', 'Feb 15, 2024')}", ParagraphStyle('BarText', fontSize=9, textColor=colors.white)),
+                     Paragraph(f"<b>Total Due</b><br/>${doc_data.get('total', 0):,.2f}", ParagraphStyle('BarText', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))]
+                ]
+                bar_table = Table(invoice_bar, colWidths=[120, 120, 120, 130])
+                bar_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (2, 0), colors.HexColor('#2E7D32')),  # Green
+                    ('BACKGROUND', (3, 0), (3, 0), colors.HexColor('#333333')),  # Dark gray for total
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('ALIGN', (3, 0), (3, 0), 'RIGHT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('PADDING', (0, 0), (-1, -1), 10),
+                ]))
+                story.append(bar_table)
                 story.append(Spacer(1, 20))
                 
-                # Bill To
+                # Bill To section
                 client = doc_data.get("client", {})
-                story.append(Paragraph("<b>Bill To:</b>", styles['Normal']))
-                story.append(Paragraph(client.get('name', ''), styles['Normal']))
-                story.append(Paragraph(client.get('address', ''), styles['Normal']))
-                story.append(Paragraph(client.get('city', ''), styles['Normal']))
+                story.append(Paragraph("<b>BILL TO:</b>", ParagraphStyle('BillTo', fontSize=10, textColor=colors.HexColor('#666666'))))
+                story.append(Paragraph(f"<b>{client.get('name', 'Client Name')}</b>", styles['Normal']))
+                story.append(Paragraph(client.get('address', ''), styles['SmallText']))
+                story.append(Paragraph(client.get('city', ''), styles['SmallText']))
+                if client.get('email'):
+                    story.append(Paragraph(client.get('email', ''), styles['SmallText']))
                 story.append(Spacer(1, 20))
                 
-                # Items table
-                items_data = [["Description", "Qty", "Rate", "Amount"]]
+                # Items table with professional styling
+                items_data = [[
+                    Paragraph("<b>DESCRIPTION</b>", ParagraphStyle('TH', fontSize=9, textColor=colors.white)),
+                    Paragraph("<b>QTY</b>", ParagraphStyle('TH', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
+                    Paragraph("<b>UNIT PRICE</b>", ParagraphStyle('TH', fontSize=9, textColor=colors.white, alignment=TA_RIGHT)),
+                    Paragraph("<b>AMOUNT</b>", ParagraphStyle('TH', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))
+                ]]
                 for item in doc_data.get("items", []):
                     items_data.append([
                         item.get('description', ''),
@@ -1340,44 +1362,140 @@ Output ONLY the CSV data, no explanations."""
                         f"${item.get('amount', 0):,.2f}"
                     ])
                 
-                items_table = Table(items_data, colWidths=[280, 50, 80, 80])
+                items_table = Table(items_data, colWidths=[250, 50, 90, 100])
                 items_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4a90d9')),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E7D32')),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cccccc')),
-                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                    ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e0e0e0')),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f8f8')]),
+                    ('PADDING', (0, 0), (-1, -1), 8),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ]))
                 story.append(items_table)
-                story.append(Spacer(1, 10))
+                story.append(Spacer(1, 15))
                 
-                # Totals
+                # Totals section - right aligned
                 totals_data = [
                     ["Subtotal:", f"${doc_data.get('subtotal', 0):,.2f}"],
-                    ["Tax:", f"${doc_data.get('tax', 0):,.2f}"],
+                    [f"Tax ({doc_data.get('tax_rate', 0)}%):", f"${doc_data.get('tax', 0):,.2f}"],
+                    ["", ""],  # Empty row for spacing
                     ["TOTAL:", f"${doc_data.get('total', 0):,.2f}"]
                 ]
-                totals_table = Table(totals_data, colWidths=[390, 100])
+                totals_table = Table(totals_data, colWidths=[370, 120])
                 totals_table.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
                     ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
                     ('FONTSIZE', (0, -1), (-1, -1), 12),
-                    ('LINEABOVE', (0, -1), (-1, -1), 2, colors.black),
+                    ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#2E7D32')),
+                    ('LINEABOVE', (1, -1), (1, -1), 2, colors.HexColor('#2E7D32')),
+                    ('PADDING', (0, 0), (-1, -1), 3),
                 ]))
                 story.append(totals_table)
                 story.append(Spacer(1, 30))
                 
                 # Notes and payment info
                 if doc_data.get('notes'):
-                    story.append(Paragraph(f"<b>Notes:</b> {doc_data.get('notes')}", styles['Normal']))
+                    story.append(Paragraph("<b>Notes:</b>", styles['SectionHeader']))
+                    story.append(Paragraph(doc_data.get('notes'), styles['SmallText']))
                 if doc_data.get('payment_info'):
                     story.append(Spacer(1, 10))
-                    story.append(Paragraph(f"<b>Payment Info:</b> {doc_data.get('payment_info')}", styles['Normal']))
+                    story.append(Paragraph("<b>Payment Information:</b>", styles['SectionHeader']))
+                    story.append(Paragraph(doc_data.get('payment_info'), styles['SmallText']))
+                
+                # Footer
+                story.append(Spacer(1, 40))
+                story.append(Paragraph("Thank you for your business!", ParagraphStyle('Footer', fontSize=10, alignment=TA_CENTER, textColor=colors.HexColor('#666666'))))
                     
             elif doc_type == "quotation":
-                # QUOTE header
-                story.append(Paragraph("QUOTATION", styles['DocTitle']))
+                # Professional Quote like Stripe example
+                header_data = [
+                    [Paragraph(f"<b>{doc_data.get('company', {}).get('name', 'Your Company')}</b>", styles['CompanyName']), 
+                     Paragraph("<b>QUOTE</b>", ParagraphStyle('QuoteTitle', parent=styles['Normal'], fontSize=32, alignment=TA_RIGHT, textColor=colors.HexColor('#2E7D32')))]
+                ]
+                header_table = Table(header_data, colWidths=[300, 190])
+                story.append(header_table)
+                
+                company = doc_data.get("company", {})
+                story.append(Paragraph(company.get('address', ''), styles['SmallText']))
+                story.append(Paragraph(f"{company.get('city', '')} | {company.get('phone', '')} | {company.get('email', '')}", styles['SmallText']))
+                story.append(Spacer(1, 15))
+                
+                # Quote info bar
+                quote_bar = [
+                    [Paragraph(f"<b>Quote No.</b><br/>{doc_data.get('quote_number', 'QT-001')}", ParagraphStyle('BarText', fontSize=9, textColor=colors.white)),
+                     Paragraph(f"<b>Issue Date</b><br/>{doc_data.get('date', '')}", ParagraphStyle('BarText', fontSize=9, textColor=colors.white)),
+                     Paragraph(f"<b>Valid Until</b><br/>{doc_data.get('valid_until', '')}", ParagraphStyle('BarText', fontSize=9, textColor=colors.white)),
+                     Paragraph(f"<b>Total</b><br/>${doc_data.get('total', 0):,.2f}", ParagraphStyle('BarText', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))]
+                ]
+                bar_table = Table(quote_bar, colWidths=[120, 120, 120, 130])
+                bar_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (2, 0), colors.HexColor('#2E7D32')),
+                    ('BACKGROUND', (3, 0), (3, 0), colors.HexColor('#333333')),
+                    ('PADDING', (0, 0), (-1, -1), 10),
+                ]))
+                story.append(bar_table)
+                story.append(Spacer(1, 20))
+                
+                # Quote For
+                client = doc_data.get("client", {})
+                story.append(Paragraph("<b>QUOTE FOR:</b>", styles['SectionHeader']))
+                story.append(Paragraph(f"<b>{client.get('name', '')}</b>", styles['Normal']))
+                if client.get('company'):
+                    story.append(Paragraph(client.get('company'), styles['SmallText']))
+                story.append(Paragraph(client.get('address', ''), styles['SmallText']))
+                story.append(Spacer(1, 20))
+                
+                # Items
+                items_data = [[
+                    Paragraph("<b>DESCRIPTION</b>", ParagraphStyle('TH', fontSize=9, textColor=colors.white)),
+                    Paragraph("<b>QTY</b>", ParagraphStyle('TH', fontSize=9, textColor=colors.white, alignment=TA_CENTER)),
+                    Paragraph("<b>UNIT PRICE</b>", ParagraphStyle('TH', fontSize=9, textColor=colors.white, alignment=TA_RIGHT)),
+                    Paragraph("<b>TOTAL</b>", ParagraphStyle('TH', fontSize=9, textColor=colors.white, alignment=TA_RIGHT))
+                ]]
+                for item in doc_data.get("items", []):
+                    items_data.append([
+                        item.get('description', ''),
+                        str(item.get('quantity', 1)),
+                        f"${item.get('unit_price', 0):,.2f}",
+                        f"${item.get('total', 0):,.2f}"
+                    ])
+                
+                items_table = Table(items_data, colWidths=[250, 50, 90, 100])
+                items_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E7D32')),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e0e0e0')),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f8f8')]),
+                    ('PADDING', (0, 0), (-1, -1), 8),
+                    ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                    ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+                ]))
+                story.append(items_table)
+                story.append(Spacer(1, 15))
+                
+                # Totals
+                totals_data = [
+                    ["Subtotal:", f"${doc_data.get('subtotal', 0):,.2f}"],
+                    ["Discount:", f"-${doc_data.get('discount', 0):,.2f}"],
+                    ["TOTAL:", f"${doc_data.get('total', 0):,.2f}"]
+                ]
+                totals_table = Table(totals_data, colWidths=[370, 120])
+                totals_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, -1), (-1, -1), 12),
+                    ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#2E7D32')),
+                    ('LINEABOVE', (1, -1), (1, -1), 2, colors.HexColor('#2E7D32')),
+                ]))
+                story.append(totals_table)
+                story.append(Spacer(1, 25))
+                
+                if doc_data.get('terms'):
+                    story.append(Paragraph("<b>Terms & Conditions:</b>", styles['SectionHeader']))
+                    story.append(Paragraph(doc_data.get('terms'), styles['SmallText']))
                 story.append(Spacer(1, 10))
                 
                 company = doc_data.get("company", {})
