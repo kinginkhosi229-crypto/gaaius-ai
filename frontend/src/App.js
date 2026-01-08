@@ -513,51 +513,114 @@ const BuildPage = ({ showSidebar = false, navigate, user, showAuth, showPro, sho
       </div>
       
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: AI Chat */}
+        {/* Left: AI Chat + Images Panel */}
         <div className="w-96 border-r border-white/10 flex flex-col bg-[#0d0d0d]">
-          <div className="p-4 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <span className="font-semibold">AI Assistant</span>
+          {/* Tabs */}
+          <div className="border-b border-white/10">
+            <div className="flex">
+              <button 
+                onClick={() => setActiveTab("chat")}
+                className={`flex-1 p-3 text-sm font-medium transition ${activeTab === "chat" ? "bg-orange-500/20 text-orange-400 border-b-2 border-orange-400" : "text-muted-foreground hover:bg-white/5"}`}
+              >
+                <Sparkles className="w-4 h-4 inline mr-2" />Build
+              </button>
+              <button 
+                onClick={() => setActiveTab("images")}
+                className={`flex-1 p-3 text-sm font-medium transition ${activeTab === "images" ? "bg-cyan-500/20 text-cyan-400 border-b-2 border-cyan-400" : "text-muted-foreground hover:bg-white/5"}`}
+              >
+                <Image className="w-4 h-4 inline mr-2" />Images ({generatedImages.length})
+              </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Tell me what website you want to build</p>
           </div>
           
-          <ScrollArea className="flex-1 p-4">
-            {chatHistory.length === 0 ? (
-              <div className="text-center py-8">
-                <Hammer className="w-12 h-12 text-primary/50 mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground mb-4">What would you like to build?</p>
-                <div className="space-y-2 text-xs">
-                  <p className="text-primary/70 cursor-pointer hover:text-primary" onClick={() => setPrompt("Build a modern SaaS landing page")}>💡 "Build a modern SaaS landing page"</p>
-                  <p className="text-primary/70 cursor-pointer hover:text-primary" onClick={() => setPrompt("Create an e-commerce product page")}>💡 "Create an e-commerce product page"</p>
-                  <p className="text-primary/70 cursor-pointer hover:text-primary" onClick={() => setPrompt("Make a portfolio website for a designer")}>💡 "Make a portfolio website"</p>
-                  <p className="text-primary/70 cursor-pointer hover:text-primary" onClick={() => setPrompt("Build a dashboard with charts and stats")}>💡 "Build a dashboard with charts"</p>
-                </div>
+          {activeTab === "chat" ? (
+            <>
+              <div className="p-4 border-b border-white/10">
+                <p className="text-xs text-muted-foreground">
+                  🔧 <strong>Build code</strong>: "Create a landing page"<br/>
+                  🎨 <strong>Generate images</strong>: "Create a logo for..."
+                </p>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {chatHistory.map((msg, i) => (
-                  <div key={i} className={`p-3 rounded-xl text-sm ${msg.role === "user" ? "bg-primary/20 ml-4" : "bg-white/5 mr-4"}`}>
-                    <p className="text-xs text-muted-foreground mb-1">{msg.role === "user" ? "You" : "GAAIUS AI"}</p>
-                    {msg.content}
+              
+              <ScrollArea className="flex-1 p-4">
+                {chatHistory.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Hammer className="w-12 h-12 text-orange-400/50 mx-auto mb-4" />
+                    <p className="text-sm text-muted-foreground mb-4">What would you like to build?</p>
+                    <div className="space-y-2 text-xs">
+                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400" onClick={() => setPrompt("Build a modern SaaS landing page")}>💡 "Build a modern SaaS landing page"</p>
+                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400" onClick={() => setPrompt("Create an e-commerce product page")}>💡 "Create an e-commerce product page"</p>
+                      <p className="text-cyan-400/70 cursor-pointer hover:text-cyan-400" onClick={() => setPrompt("Create a logo for a tech startup called GAAIUS")}>🎨 "Create a logo for my app"</p>
+                      <p className="text-cyan-400/70 cursor-pointer hover:text-cyan-400" onClick={() => setPrompt("Generate a hero background image for a finance app")}>🎨 "Generate a hero background image"</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
+                ) : (
+                  <div className="space-y-3">
+                    {chatHistory.map((msg, i) => (
+                      <div key={i} className={`p-3 rounded-xl text-sm ${msg.role === "user" ? "bg-orange-500/20 ml-4 border border-orange-500/20" : "bg-white/5 mr-4"}`}>
+                        <p className="text-xs text-muted-foreground mb-1">{msg.role === "user" ? "You" : "GAAIUS AI"}</p>
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        {msg.imageUrl && (
+                          <div className="mt-2">
+                            <img src={msg.imageUrl} alt="Generated" className="w-full rounded-lg border border-white/10" />
+                            <div className="flex gap-2 mt-2">
+                              <Button size="sm" variant="outline" onClick={() => copyImageUrl(msg.imageUrl)} className="text-xs h-7 flex-1">
+                                Copy URL
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => insertImageIntoCode(msg.imageUrl)} className="text-xs h-7 flex-1 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+                                Insert to Code
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </>
+          ) : (
+            <ScrollArea className="flex-1 p-4">
+              {generatedImages.length === 0 ? (
+                <div className="text-center py-8">
+                  <Image className="w-12 h-12 text-cyan-400/50 mx-auto mb-4" />
+                  <p className="text-sm text-muted-foreground mb-2">No images generated yet</p>
+                  <p className="text-xs text-muted-foreground">Ask AI to "create a logo" or "generate an image"</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {generatedImages.map((img) => (
+                    <div key={img.id} className="relative group">
+                      <img src={img.url} alt={img.prompt} className="w-full rounded-lg border border-white/10" />
+                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center p-2 rounded-lg">
+                        <p className="text-xs text-center mb-2 line-clamp-2">{img.prompt}</p>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => copyImageUrl(img.url)} className="text-xs h-6 px-2">
+                            Copy
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => insertImageIntoCode(img.url)} className="text-xs h-6 px-2 text-cyan-400">
+                            Insert
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          )}
           
           <div className="p-4 border-t border-white/10">
             <div className="flex gap-2">
               <Input
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe what to build..."
+                placeholder="Build website or generate image..."
                 className="flex-1 bg-white/5 border-white/10"
                 onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
               />
-              <Button onClick={handleGenerate} disabled={loading} className="bg-primary">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              <Button onClick={handleGenerate} disabled={loading || imageLoading} className="bg-orange-500 hover:bg-orange-600">
+                {(loading || imageLoading) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
           </div>
