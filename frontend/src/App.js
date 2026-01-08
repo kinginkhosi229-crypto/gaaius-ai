@@ -1596,22 +1596,315 @@ const DocumentStudio = ({ onBack }) => {
                 />
               ) : (
                 <div className="max-w-3xl mx-auto p-8 text-black">
-                  {/* Render as formatted document based on type */}
-                  {(documentType === "invoice" || documentType === "quotation" || documentType === "receipt") ? (
-                    <div className="border border-gray-200 rounded-lg shadow-sm">
-                      <div className="bg-gray-50 p-6 border-b">
-                        <h1 className="text-2xl font-bold text-gray-800">{documentType.toUpperCase()}</h1>
-                        <p className="text-sm text-gray-500">{documentName || "Document"}</p>
-                      </div>
-                      <div className="p-6 whitespace-pre-wrap text-sm leading-relaxed">
-                        {documentContent}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-800">{documentContent}</pre>
-                    </div>
-                  )}
+                  {/* Render MODERN formatted document preview */}
+                  {(() => {
+                    try {
+                      const data = JSON.parse(documentContent);
+                      
+                      if (documentType === "invoice") {
+                        return (
+                          <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            {/* Header */}
+                            <div className="flex justify-between items-start p-8 border-b">
+                              <div>
+                                <h1 className="text-3xl font-bold text-gray-800">{data.company?.name || "Your Company"}</h1>
+                                <p className="text-gray-500 text-sm mt-1">{data.company?.address}</p>
+                                <p className="text-gray-500 text-sm">{data.company?.city}</p>
+                                <p className="text-gray-500 text-sm">{data.company?.email} | {data.company?.phone}</p>
+                              </div>
+                              <div className="text-right">
+                                <h2 className="text-4xl font-bold text-green-600">INVOICE</h2>
+                                <p className="text-gray-600 mt-2">#{data.invoice_number}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Info Bar */}
+                            <div className="grid grid-cols-4 bg-green-600 text-white text-sm">
+                              <div className="p-4 border-r border-green-500">
+                                <p className="opacity-80">Invoice No.</p>
+                                <p className="font-semibold">{data.invoice_number}</p>
+                              </div>
+                              <div className="p-4 border-r border-green-500">
+                                <p className="opacity-80">Issue Date</p>
+                                <p className="font-semibold">{data.date}</p>
+                              </div>
+                              <div className="p-4 border-r border-green-500">
+                                <p className="opacity-80">Due Date</p>
+                                <p className="font-semibold">{data.due_date}</p>
+                              </div>
+                              <div className="p-4 bg-gray-800">
+                                <p className="opacity-80">Total Due</p>
+                                <p className="font-bold text-lg">${(data.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Bill To */}
+                            <div className="p-8">
+                              <p className="text-gray-500 text-sm uppercase tracking-wide mb-2">Bill To</p>
+                              <p className="font-semibold text-lg">{data.client?.name}</p>
+                              <p className="text-gray-600">{data.client?.address}</p>
+                              <p className="text-gray-600">{data.client?.city}</p>
+                              {data.client?.email && <p className="text-gray-600">{data.client?.email}</p>}
+                            </div>
+                            
+                            {/* Items Table */}
+                            <div className="px-8">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="bg-green-600 text-white text-sm">
+                                    <th className="text-left p-3">DESCRIPTION</th>
+                                    <th className="text-center p-3 w-20">QTY</th>
+                                    <th className="text-right p-3 w-28">RATE</th>
+                                    <th className="text-right p-3 w-28">AMOUNT</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(data.items || []).map((item, i) => (
+                                    <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                      <td className="p-3 border-b">{item.description}</td>
+                                      <td className="p-3 border-b text-center">{item.quantity}</td>
+                                      <td className="p-3 border-b text-right">${(item.rate || item.unit_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                      <td className="p-3 border-b text-right">${(item.amount || item.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            
+                            {/* Totals */}
+                            <div className="p-8 flex justify-end">
+                              <div className="w-64">
+                                <div className="flex justify-between py-2">
+                                  <span className="text-gray-600">Subtotal:</span>
+                                  <span>${(data.subtotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                </div>
+                                <div className="flex justify-between py-2">
+                                  <span className="text-gray-600">Tax ({data.tax_rate || 0}%):</span>
+                                  <span>${(data.tax || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                </div>
+                                <div className="flex justify-between py-3 border-t-2 border-green-600 mt-2">
+                                  <span className="font-bold text-lg text-green-600">TOTAL:</span>
+                                  <span className="font-bold text-lg text-green-600">${(data.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Footer */}
+                            {(data.notes || data.payment_info) && (
+                              <div className="px-8 pb-8 text-sm text-gray-600">
+                                {data.notes && <p><strong>Notes:</strong> {data.notes}</p>}
+                                {data.payment_info && <p className="mt-2"><strong>Payment Info:</strong> {data.payment_info}</p>}
+                              </div>
+                            )}
+                            
+                            <div className="bg-gray-50 p-4 text-center text-gray-500 text-sm">
+                              Thank you for your business!
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      if (documentType === "quotation") {
+                        return (
+                          <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <div className="flex justify-between items-start p-8 border-b">
+                              <div>
+                                <h1 className="text-3xl font-bold text-gray-800">{data.company?.name || "Your Company"}</h1>
+                                <p className="text-gray-500 text-sm mt-1">{data.company?.address}</p>
+                                <p className="text-gray-500 text-sm">{data.company?.city}</p>
+                              </div>
+                              <div className="text-right">
+                                <h2 className="text-4xl font-bold text-green-600">QUOTE</h2>
+                                <p className="text-gray-600 mt-2">#{data.quote_number}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 bg-green-600 text-white text-sm">
+                              <div className="p-4 border-r border-green-500">
+                                <p className="opacity-80">Quote No.</p>
+                                <p className="font-semibold">{data.quote_number}</p>
+                              </div>
+                              <div className="p-4 border-r border-green-500">
+                                <p className="opacity-80">Date</p>
+                                <p className="font-semibold">{data.date}</p>
+                              </div>
+                              <div className="p-4 border-r border-green-500">
+                                <p className="opacity-80">Valid Until</p>
+                                <p className="font-semibold">{data.valid_until}</p>
+                              </div>
+                              <div className="p-4 bg-gray-800">
+                                <p className="opacity-80">Total</p>
+                                <p className="font-bold text-lg">${(data.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="p-8">
+                              <p className="text-gray-500 text-sm uppercase tracking-wide mb-2">Quote For</p>
+                              <p className="font-semibold text-lg">{data.client?.name}</p>
+                              {data.client?.company && <p className="text-gray-600">{data.client?.company}</p>}
+                              <p className="text-gray-600">{data.client?.address}</p>
+                            </div>
+                            
+                            <div className="px-8">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="bg-green-600 text-white text-sm">
+                                    <th className="text-left p-3">DESCRIPTION</th>
+                                    <th className="text-center p-3 w-20">QTY</th>
+                                    <th className="text-right p-3 w-28">UNIT PRICE</th>
+                                    <th className="text-right p-3 w-28">TOTAL</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(data.items || []).map((item, i) => (
+                                    <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                                      <td className="p-3 border-b">{item.description}</td>
+                                      <td className="p-3 border-b text-center">{item.quantity}</td>
+                                      <td className="p-3 border-b text-right">${(item.unit_price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                      <td className="p-3 border-b text-right">${(item.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            
+                            <div className="p-8 flex justify-end">
+                              <div className="w-64">
+                                <div className="flex justify-between py-2">
+                                  <span className="text-gray-600">Subtotal:</span>
+                                  <span>${(data.subtotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                </div>
+                                {data.discount > 0 && (
+                                  <div className="flex justify-between py-2 text-red-500">
+                                    <span>Discount:</span>
+                                    <span>-${(data.discount || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between py-3 border-t-2 border-green-600 mt-2">
+                                  <span className="font-bold text-lg text-green-600">TOTAL:</span>
+                                  <span className="font-bold text-lg text-green-600">${(data.total || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {data.terms && (
+                              <div className="px-8 pb-8 text-sm text-gray-600">
+                                <p><strong>Terms & Conditions:</strong> {data.terms}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      
+                      if (documentType === "receipt") {
+                        return (
+                          <div className="bg-white shadow-lg rounded-lg overflow-hidden max-w-md mx-auto">
+                            <div className="text-center p-6 border-b">
+                              <h2 className="text-3xl font-bold text-gray-800">RECEIPT</h2>
+                              <h3 className="text-xl font-semibold mt-2">{data.company?.name || "Shop Name"}</h3>
+                              <p className="text-gray-500 text-sm">{data.company?.address}</p>
+                              <p className="text-gray-500 text-sm">{data.company?.city}</p>
+                              <p className="text-gray-500 text-sm">{data.company?.phone}</p>
+                            </div>
+                            
+                            <div className="p-4 text-center border-b border-dashed">
+                              <p className="font-semibold">Receipt #{data.receipt_number}</p>
+                              <p className="text-gray-500 text-sm">{data.date}</p>
+                            </div>
+                            
+                            {data.customer?.name && (
+                              <div className="px-6 py-3 border-b">
+                                <p className="text-sm text-gray-600">Customer: {data.customer?.name}</p>
+                              </div>
+                            )}
+                            
+                            <div className="p-6">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b-2 border-gray-300">
+                                    <th className="text-left py-2">Item</th>
+                                    <th className="text-center py-2">Qty</th>
+                                    <th className="text-right py-2">Price</th>
+                                    <th className="text-right py-2">Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(data.items || []).map((item, i) => (
+                                    <tr key={i} className="border-b border-gray-200">
+                                      <td className="py-2">{item.description}</td>
+                                      <td className="py-2 text-center">{item.quantity}</td>
+                                      <td className="py-2 text-right">${(item.price || 0).toFixed(2)}</td>
+                                      <td className="py-2 text-right">${(item.total || 0).toFixed(2)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            
+                            <div className="px-6 pb-4 border-t border-dashed">
+                              <div className="flex justify-between py-2">
+                                <span>Subtotal:</span>
+                                <span>${(data.subtotal || 0).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between py-2">
+                                <span>Tax:</span>
+                                <span>${(data.tax || 0).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between py-3 border-t-2 border-black font-bold text-lg">
+                                <span>TOTAL:</span>
+                                <span>${(data.total || 0).toFixed(2)}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="px-6 pb-4 text-center text-sm border-t border-dashed">
+                              <p className="py-2">Payment: {data.payment_method}</p>
+                              {data.payment_reference && <p className="text-gray-500">Ref: {data.payment_reference}</p>}
+                            </div>
+                            
+                            <div className="bg-gray-50 p-4 text-center text-gray-600">
+                              {data.notes || "Thank you for your purchase!"}
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      // For Excel - show as table
+                      if (documentType === "xlsx") {
+                        const rows = documentContent.split('\n').filter(r => r.trim());
+                        return (
+                          <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+                            <div className="p-4 bg-green-600 text-white font-semibold">
+                              Excel Spreadsheet Preview
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                {rows.map((row, i) => {
+                                  const cells = row.split(',');
+                                  return (
+                                    <tr key={i} className={i === 0 ? "bg-gray-100 font-semibold" : (i % 2 === 0 ? "bg-gray-50" : "")}>
+                                      {cells.map((cell, j) => (
+                                        <td key={j} className="border px-3 py-2">{cell.trim()}</td>
+                                      ))}
+                                    </tr>
+                                  );
+                                })}
+                              </table>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      // Fallback - show as text
+                      throw new Error("Not JSON");
+                    } catch (e) {
+                      // Not JSON, show as formatted text
+                      return (
+                        <div className="prose prose-sm max-w-none">
+                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-800 p-6 bg-gray-50 rounded-lg">{documentContent}</pre>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
               )
             ) : (
