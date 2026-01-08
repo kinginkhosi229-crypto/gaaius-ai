@@ -14,8 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   MessageSquare, Image, Video, Mic, MicOff, Send, Plus, Trash2, Volume2,
   Loader2, Sparkles, Zap, Menu, X, Download, User, LogOut, Crown, Music,
-  FileCode, FolderOpen, Hammer, Eye, Code, Settings, CreditCard, Edit, Save
+  FileCode, FolderOpen, Hammer, Eye, Code, Settings, CreditCard, Edit, Save,
+  Terminal, Play, ChevronRight, File, Folder, RefreshCw, Copy, Check
 } from "lucide-react";
+import Editor from "@monaco-editor/react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
