@@ -1923,6 +1923,7 @@ const MainApp = () => {
         setLoading(false);
         return; // Don't wait
       } else if (mode === "audio") {
+        trackGeneration(); // Track for ads
         const toastId = toast.loading("Generating audio...");
         // Run audio generation in background (non-blocking)
         api.post("/audio/generate", { prompt: userInput, duration: 10, type: "music" })
@@ -1939,6 +1940,7 @@ const MainApp = () => {
         setLoading(false);
         return; // Don't wait
       } else if (mode === "file") {
+        trackGeneration(); // Track for ads
         const toastId = toast.loading("Generating file...");
         const res = await api.post("/file/generate", { prompt: userInput, file_type: fileType });
         const newGen = { ...res.data, type: "file", url: res.data.file_url || res.data.url };
