@@ -765,26 +765,139 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         
-        {/* Right: Live Preview */}
-        <div className="flex-1 flex flex-col">
-          <div className="h-10 border-b border-white/10 flex items-center justify-between px-4 bg-[#111]">
-            <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-mono">Live Preview</span>
+        {/* Middle: File Tree (collapsible) */}
+        {showFileTree && (
+          <div className="w-48 border-r border-white/10 bg-[#0d0d0d] flex flex-col">
+            <div className="p-2 border-b border-white/10 flex items-center justify-between">
+              <span className="text-xs font-mono text-muted-foreground uppercase">Files</span>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-6 w-6 p-0"
+                onClick={() => {
+                  const name = window.prompt("New file name (e.g., page.html):");
+                  if (name) createNewFile(name);
+                }}
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
             </div>
-            <div className="flex gap-1">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500" />
-              <div className="w-3 h-3 rounded-full bg-green-500" />
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-1">
+                {Object.keys(projectFiles).map(filename => (
+                  <div 
+                    key={filename}
+                    className={`flex items-center gap-2 p-1.5 rounded text-xs cursor-pointer group ${activeFile === filename ? "bg-orange-500/20 text-orange-400" : "hover:bg-white/5"}`}
+                    onClick={() => setActiveFile(filename)}
+                  >
+                    <File className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate flex-1">{filename}</span>
+                    {Object.keys(projectFiles).length > 1 && (
+                      <button 
+                        className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition"
+                        onClick={(e) => { e.stopPropagation(); deleteFile(filename); }}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+        
+        {/* Right: Preview / Code / Terminal */}
+        <div className="flex-1 flex flex-col">
+          {/* Right Panel Tabs */}
+          <div className="h-10 border-b border-white/10 flex items-center justify-between px-2 bg-[#111]">
+            <div className="flex">
+              <button 
+                onClick={() => setRightPanelTab("preview")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${rightPanelTab === "preview" ? "bg-cyan-500/20 text-cyan-400" : "text-muted-foreground hover:bg-white/5"}`}
+              >
+                <Eye className="w-3.5 h-3.5" /> Preview
+              </button>
+              <button 
+                onClick={() => setRightPanelTab("code")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${rightPanelTab === "code" ? "bg-green-500/20 text-green-400" : "text-muted-foreground hover:bg-white/5"}`}
+              >
+                <Code className="w-3.5 h-3.5" /> Code
+              </button>
+              <button 
+                onClick={() => setRightPanelTab("terminal")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${rightPanelTab === "terminal" ? "bg-purple-500/20 text-purple-400" : "text-muted-foreground hover:bg-white/5"}`}
+              >
+                <Terminal className="w-3.5 h-3.5" /> Terminal
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setShowFileTree(!showFileTree)}>
+                <FolderOpen className="w-3 h-3 mr-1" /> {showFileTree ? "Hide" : "Show"} Files
+              </Button>
+              <div className="flex gap-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+              </div>
             </div>
           </div>
-          <div className="flex-1 bg-white">
-            <iframe
-              srcDoc={htmlContent}
-              className="w-full h-full border-0"
-              title="Preview"
-              sandbox="allow-scripts allow-same-origin"
-            />
+          
+          {/* Panel Content */}
+          <div className="flex-1 overflow-hidden">
+            {rightPanelTab === "preview" && (
+              <div className="h-full bg-white">
+                <iframe
+                  srcDoc={buildPreviewHtml()}
+                  className="w-full h-full border-0"
+                  title="Preview"
+                  sandbox="allow-scripts allow-same-origin"
+                />
+              </div>
+            )}
+            
+            {rightPanelTab === "code" && (
+              <div className="h-full flex flex-col">
+                <div className="h-8 bg-[#1e1e1e] border-b border-white/10 flex items-center px-2">
+                  <span className="text-xs font-mono text-muted-foreground">{activeFile}</span>
+                </div>
+                <Editor
+                  height="100%"
+                  language={getLanguage(activeFile)}
+                  value={projectFiles[activeFile] || ""}
+                  onChange={(value) => updateFileContent(value || "")}
+                  theme="vs-dark"
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 13,
+                    lineNumbers: "on",
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    tabSize: 2,
+                    wordWrap: "on"
+                  }}
+                />
+              </div>
+            )}
+            
+            {rightPanelTab === "terminal" && (
+              <div className="h-full bg-[#0d0d0d] font-mono text-xs p-3 overflow-auto">
+                {terminalOutput.map((log, i) => (
+                  <div key={i} className={`py-0.5 ${
+                    log.type === "error" ? "text-red-400" : 
+                    log.type === "success" ? "text-green-400" : 
+                    log.type === "warning" ? "text-yellow-400" :
+                    log.type === "info" ? "text-cyan-400" : "text-gray-400"
+                  }`}>
+                    <span className="text-gray-500">{log.timestamp || ""}</span> {log.text}
+                  </div>
+                ))}
+                <div className="flex items-center mt-2 text-green-400">
+                  <ChevronRight className="w-3 h-3 mr-1" />
+                  <span className="animate-pulse">_</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
