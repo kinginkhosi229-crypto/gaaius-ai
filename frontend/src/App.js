@@ -1889,6 +1889,7 @@ const MainApp = () => {
           return [...filtered, { ...tempUserMsg, id: `user-${Date.now()}` }, { id: res.data.id, role: "assistant", content: res.data.content, timestamp: res.data.timestamp }];
         });
       } else if (mode === "image") {
+        trackGeneration(); // Track for ads
         const toastId = toast.loading("Generating image... You can continue using other features");
         // Run image generation in background (non-blocking)
         api.post("/image/generate", { prompt: userInput, session_id: currentSession?.id }, { timeout: 300000 })
@@ -1905,6 +1906,7 @@ const MainApp = () => {
         setLoading(false);
         return; // Don't wait
       } else if (mode === "video") {
+        trackGeneration(); // Track for ads
         const toastId = toast.loading("Generating video... You can continue using other features");
         // Run video generation in background (non-blocking)
         api.post("/video/generate", { prompt: userInput, duration: 5, style: videoStyle, session_id: currentSession?.id }, { timeout: 600000 })
