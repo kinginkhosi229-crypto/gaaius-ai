@@ -1648,6 +1648,13 @@ const MainApp = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showPro, setShowPro] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showVideoAd, setShowVideoAd] = useState(false);
+  const [generationCount, setGenerationCount] = useState(() => {
+    return parseInt(localStorage.getItem("gaaius_gen_count") || "0");
+  });
+  const [lastAdTime, setLastAdTime] = useState(() => {
+    return parseInt(localStorage.getItem("gaaius_last_ad") || Date.now().toString());
+  });
   
   const { user, token, logout } = useAuthStore();
   const messagesEndRef = useRef(null);
@@ -1656,6 +1663,61 @@ const MainApp = () => {
   const inputRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Check if ad should be shown (every 10 generations or every 30 minutes)
+  const shouldShowAd = () => {
+    if (user?.is_pro) return false; // Pro users never see ads
+    
+    const now = Date.now();
+    const thirtyMinutes = 30 * 60 * 1000;
+    const timeSinceLastAd = now - lastAdTime;
+    
+    // Show ad if 30 minutes passed
+    if (timeSinceLastAd >= thirtyMinutes) {
+      return true;
+    }
+    
+    // Show ad every 10 generations
+    if (generationCount > 0 && generationCount % 10 === 0) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  // Increment generation count and check for ad
+  const trackGeneration = () => {
+    if (user?.is_pro) return; // Pro users don't track
+    
+    const newCount = generationCount + 1;
+    setGenerationCount(newCount);
+    localStorage.setItem("gaaius_gen_count", newCount.toString());
+    
+    if (shouldShowAd() || newCount % 10 === 0) {
+      setShowVideoAd(true);
+      setLastAdTime(Date.now());
+      localStorage.setItem("gaaius_last_ad", Date.now().toString());
+    }
+  };
+
+  // 30-minute timer for ads
+  useEffect(() => {
+    if (user?.is_pro) return; // Pro users skip timer
+    
+    const checkAdTimer = setInterval(() => {
+      const now = Date.now();
+      const thirtyMinutes = 30 * 60 * 1000;
+      const timeSinceLastAd = now - lastAdTime;
+      
+      if (timeSinceLastAd >= thirtyMinutes) {
+        setShowVideoAd(true);
+        setLastAdTime(now);
+        localStorage.setItem("gaaius_last_ad", now.toString());
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(checkAdTimer);
+  }, [user?.is_pro, lastAdTime]);
 
   // Save mode to localStorage when it changes
   useEffect(() => {
