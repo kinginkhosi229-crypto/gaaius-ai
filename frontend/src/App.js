@@ -559,22 +559,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isImageRequest) {
       // Use Pollinations AI for image generation
       setPrompt("");
+      addTerminalLog("info", `Generating image: ${prompt}`);
       await generateImage(prompt);
       return;
     }
     
     // Otherwise, use Groq for code generation
     setLoading(true);
+    addTerminalLog("info", `AI generating code for: ${prompt}`);
     
     try {
-      const res = await api.post("/build/generate", { prompt, current_code: htmlContent });
+      const res = await api.post("/build/generate", { prompt, current_code: projectFiles[activeFile] || htmlContent });
       if (res.data.code) {
+        // Update the active file or index.html
+        const targetFile = activeFile.endsWith('.html') ? activeFile : 'index.html';
+        setProjectFiles(prev => ({ ...prev, [targetFile]: res.data.code }));
         setHtmlContent(res.data.code);
-        setChatHistory(prev => [...prev, { role: "assistant", content: "✅ Done! I've updated your website. Check the preview!" }]);
-        toast.success("Website updated!");
+        setChatHistory(prev => [...prev, { role: "assistant", content: `✅ Done! I've updated ${targetFile}. Check the preview!` }]);
+        addTerminalLog("success", `Code generated and saved to ${targetFile}`);
+        toast.success("Code updated!");
       }
     } catch (error) {
       setChatHistory(prev => [...prev, { role: "assistant", content: "❌ I encountered an issue. Let me try again..." }]);
+      addTerminalLog("error", `Generation failed: ${error.message}`);
       toast.error("Generation failed");
     } finally {
       setLoading(false);
@@ -585,24 +592,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const handleSaveToProject = async () => {
     if (!projectName.trim()) return;
     try {
+      addTerminalLog("info", `Saving project: ${projectName}`);
       const res = await api.post("/projects", { name: projectName, description: "Created from AI Builder", type: "web" });
-      await api.put(`/projects/${res.data.id}/files`, { "index.html": htmlContent });
+      await api.put(`/projects/${res.data.id}/files`, projectFiles);
+      addTerminalLog("success", `Project saved with ${Object.keys(projectFiles).length} files`);
       toast.success("Saved to project!");
       setShowSaveDialog(false);
       (navigate || nav)("/projects");
     } catch (error) {
+      addTerminalLog("error", `Save failed: ${error.message}`);
       toast.error("Failed to save");
     }
   };
 
   const downloadProject = () => {
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+    // Download all files as combined HTML or as ZIP
+    const combinedHtml = buildPreviewHtml();
+    const blob = new Blob([combinedHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'website.html';
     a.click();
     URL.revokeObjectURL(url);
+    addTerminalLog("success", "Project downloaded as website.html");
     toast.success("Website downloaded!");
   };
 
