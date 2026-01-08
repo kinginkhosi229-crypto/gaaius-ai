@@ -2040,17 +2040,7 @@ const Sidebar = ({ mode, setMode, sessions, currentSession, setCurrentSession, s
     <aside className={`fixed md:relative z-50 h-full w-72 glass border-r border-white/10 flex flex-col transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`} data-testid="sidebar">
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="font-secondary text-xl font-bold">GAAIUS</h1>
-              <p className="font-mono text-xs text-muted-foreground uppercase">AI</p>
-            </div>
-          </div>
-        </div>
+        <h1 className="font-secondary text-2xl font-bold">GAAIUS AI</h1>
       </div>
 
       {/* Mode Selector */}
