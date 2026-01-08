@@ -62,10 +62,34 @@ const AuthModal = ({ open, onClose, onSuccess }) => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const { setUser, setToken } = useAuthStore();
+
+  // Validate Gmail only
+  const validateEmail = (email) => {
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+    if (!email) return "Email is required";
+    if (!gmailRegex.test(email)) return "Only Gmail addresses are allowed";
+    return "";
+  };
+
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setEmailError(validateEmail(newEmail));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate Gmail
+    const error = validateEmail(email);
+    if (error) {
+      setEmailError(error);
+      toast.error(error);
+      return;
+    }
+    
     setLoading(true);
     try {
       const endpoint = isLogin ? "/auth/login" : "/auth/register";
@@ -88,15 +112,25 @@ const AuthModal = ({ open, onClose, onSuccess }) => {
       <DialogContent className="glass border-white/10 max-w-md">
         <DialogHeader>
           <DialogTitle className="font-secondary">{isLogin ? "Welcome Back" : "Create Account"}</DialogTitle>
-          <DialogDescription>Sign in to access all GAAIUS AI features</DialogDescription>
+          <DialogDescription>Sign in with your Gmail account</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
-            <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="bg-white/5 border-white/10" />
+            <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className="bg-white/5 border-white/10" required />
           )}
-          <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-white/5 border-white/10" required />
-          <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-white/5 border-white/10" required />
-          <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
+          <div>
+            <Input 
+              type="email" 
+              placeholder="your.email@gmail.com" 
+              value={email} 
+              onChange={handleEmailChange} 
+              className={`bg-white/5 border-white/10 ${emailError ? 'border-red-500' : ''}`} 
+              required 
+            />
+            {emailError && <p className="text-red-400 text-xs mt-1">{emailError}</p>}
+          </div>
+          <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-white/5 border-white/10" required minLength={6} />
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading || !!emailError}>
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (isLogin ? "Sign In" : "Sign Up")}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
