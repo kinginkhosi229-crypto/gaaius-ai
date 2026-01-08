@@ -158,7 +158,7 @@ const ProfileModal = ({ open, onClose }) => {
   );
 };
 
-// Pro Upgrade Modal with PayPal
+// Pro Upgrade Modal with PayPal only
 const ProModal = ({ open, onClose }) => {
   const { user, setUser } = useAuthStore();
   const [paypalClientId, setPaypalClientId] = useState("");
@@ -184,26 +184,6 @@ const ProModal = ({ open, onClose }) => {
     }
   };
 
-  const handlePayFast = async () => {
-    try {
-      const res = await api.post("/payment/payfast/create");
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = res.data.payment_url;
-      Object.entries(res.data.data).forEach(([key, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = value;
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-    } catch (error) {
-      toast.error("PayFast error");
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="glass border-white/10 max-w-md">
@@ -218,6 +198,7 @@ const ProModal = ({ open, onClose }) => {
             <h3 className="font-semibold mb-2">Pro Benefits:</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>✓ No ads - ever!</li>
+              <li>✓ Unlimited generations</li>
               <li>✓ Priority generation</li>
               <li>✓ Longer videos (up to 60s)</li>
               <li>✓ HD image exports</li>
@@ -238,11 +219,69 @@ const ProModal = ({ open, onClose }) => {
             </PayPalScriptProvider>
           )}
           
-          <div className="text-center text-muted-foreground text-sm">or</div>
+          <p className="text-center text-xs text-muted-foreground">
+            Secure payment via PayPal. Cancel anytime.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Video Ad Modal - Shows after 10 generations or every 30 minutes
+const VideoAdModal = ({ open, onClose, onUpgrade }) => {
+  const [countdown, setCountdown] = useState(15);
+  const [canSkip, setCanSkip] = useState(false);
+
+  useEffect(() => {
+    if (open && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      setCanSkip(true);
+    }
+  }, [open, countdown]);
+
+  useEffect(() => {
+    if (open) {
+      setCountdown(15);
+      setCanSkip(false);
+    }
+  }, [open]);
+
+  const adContent = [
+    { title: "🚀 GAAIUS AI Pro", subtitle: "Remove all ads for just $1/month", highlight: "Unlimited AI generations!" },
+    { title: "⚡ Go Ad-Free", subtitle: "Upgrade to Pro and never see ads again", highlight: "Priority processing!" },
+    { title: "🎨 Unlock Full Power", subtitle: "Get Pro for the ultimate AI experience", highlight: "HD exports + longer videos!" }
+  ];
+  const [ad] = useState(adContent[Math.floor(Math.random() * adContent.length)]);
+
+  return (
+    <Dialog open={open} onOpenChange={() => canSkip && onClose()}>
+      <DialogContent className="glass border-white/10 max-w-lg" onPointerDownOutside={(e) => !canSkip && e.preventDefault()}>
+        <div className="text-center py-6">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mx-auto mb-4">
+            <Crown className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">{ad.title}</h2>
+          <p className="text-muted-foreground mb-2">{ad.subtitle}</p>
+          <p className="text-yellow-400 font-semibold text-lg mb-6">{ad.highlight}</p>
           
-          <Button onClick={handlePayFast} variant="outline" className="w-full border-green-500/30 text-green-400 hover:bg-green-500/10">
-            <CreditCard className="w-4 h-4 mr-2" /> Pay with PayFast (South Africa)
-          </Button>
+          <div className="space-y-3">
+            <Button onClick={onUpgrade} className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-semibold">
+              <Crown className="w-4 h-4 mr-2" /> Upgrade to Pro - $1/month
+            </Button>
+            
+            {canSkip ? (
+              <Button variant="ghost" onClick={onClose} className="w-full text-muted-foreground">
+                Skip Ad
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Skip available in {countdown}s...
+              </p>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
