@@ -728,21 +728,24 @@ document.addEventListener('DOMContentLoaded', () => {
             <>
               <div className="p-4 border-b border-white/10">
                 <p className="text-xs text-muted-foreground">
-                  🔧 <strong>Build code</strong>: "Create a landing page"<br/>
+                  🚀 <strong>Build apps</strong>: "Create YouTube clone"<br/>
                   🎨 <strong>Generate images</strong>: "Create a logo for..."
                 </p>
               </div>
               
               <ScrollArea className="flex-1 p-4">
                 {chatHistory.length === 0 ? (
-                  <div className="text-center py-8">
+                  <div className="text-center py-6">
                     <Hammer className="w-12 h-12 text-orange-400/50 mx-auto mb-4" />
-                    <p className="text-sm text-muted-foreground mb-4">What would you like to build?</p>
-                    <div className="space-y-2 text-xs">
-                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400" onClick={() => setPrompt("Build a modern SaaS landing page")}>💡 "Build a modern SaaS landing page"</p>
-                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400" onClick={() => setPrompt("Create an e-commerce product page")}>💡 "Create an e-commerce product page"</p>
-                      <p className="text-cyan-400/70 cursor-pointer hover:text-cyan-400" onClick={() => setPrompt("Create a logo for a tech startup called GAAIUS")}>🎨 "Create a logo for my app"</p>
-                      <p className="text-cyan-400/70 cursor-pointer hover:text-cyan-400" onClick={() => setPrompt("Generate a hero background image for a finance app")}>🎨 "Generate a hero background image"</p>
+                    <p className="text-sm text-muted-foreground mb-4">Build ANY app or website</p>
+                    <div className="space-y-2 text-xs text-left">
+                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Build a YouTube clone with video grid, sidebar, and search")}>🎬 "Build a YouTube clone"</p>
+                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a Spotify-like music player with playlists and player controls")}>🎵 "Create a Spotify clone"</p>
+                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Build a Netflix homepage with hero banner and content rows")}>📺 "Build a Netflix homepage"</p>
+                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a Twitter/X feed with tweets, sidebar, and compose box")}>🐦 "Create a Twitter clone"</p>
+                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Build an Instagram profile page with photo grid and stories")}>📸 "Build Instagram UI"</p>
+                      <p className="text-orange-400/70 cursor-pointer hover:text-orange-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create an Amazon-like e-commerce store with product grid and cart")}>🛒 "Create Amazon store"</p>
+                      <p className="text-cyan-400/70 cursor-pointer hover:text-cyan-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a professional logo for a tech startup")}>🎨 "Create a logo"</p>
                     </div>
                   </div>
                 ) : (
