@@ -1114,6 +1114,483 @@ Use appropriate formal tone.""",
         logger.error(f"Document generation error: {e}")
         raise HTTPException(status_code=500, detail=f"Document generation failed: {str(e)}")
 
+@api_router.post("/document/generate-professional")
+async def generate_professional_document(data: dict, user = Depends(get_current_user)):
+    """Generate REAL professional documents - proper invoices, quotes, receipts as PDFs"""
+    try:
+        prompt = data.get("prompt", "")
+        doc_type = data.get("document_type", "invoice")
+        doc_name = data.get("document_name", "Document")
+        output_format = data.get("output_format", "pdf")
+        
+        # Professional document prompts that generate structured data
+        professional_prompts = {
+            "invoice": """You are a professional invoice generator. Based on the user request, generate invoice data in this EXACT JSON format:
+{
+  "invoice_number": "INV-2024-001",
+  "date": "2024-01-15",
+  "due_date": "2024-02-15",
+  "company": {"name": "Your Company", "address": "123 Business St", "city": "City, State 12345", "email": "billing@company.com", "phone": "(555) 123-4567"},
+  "client": {"name": "Client Name", "address": "456 Client Ave", "city": "City, State 67890", "email": "client@email.com"},
+  "items": [{"description": "Service Description", "quantity": 1, "rate": 100.00, "amount": 100.00}],
+  "subtotal": 100.00,
+  "tax_rate": 0,
+  "tax": 0,
+  "total": 100.00,
+  "notes": "Payment due within 30 days.",
+  "payment_info": "Bank: Example Bank, Account: 1234567890"
+}
+Extract real details from the user request. Output ONLY valid JSON.""",
+
+            "quotation": """You are a professional quotation generator. Based on the user request, generate quote data in this EXACT JSON format:
+{
+  "quote_number": "QT-2024-001",
+  "date": "2024-01-15",
+  "valid_until": "2024-02-15",
+  "company": {"name": "Your Company", "address": "123 Business St", "city": "City, State 12345", "email": "sales@company.com", "phone": "(555) 123-4567"},
+  "client": {"name": "Client Name", "company": "Client Company", "address": "456 Client Ave", "city": "City, State 67890"},
+  "items": [{"description": "Item/Service Description", "quantity": 1, "unit_price": 100.00, "total": 100.00}],
+  "subtotal": 100.00,
+  "discount": 0,
+  "tax": 0,
+  "total": 100.00,
+  "terms": "Quote valid for 30 days. 50% deposit required.",
+  "notes": "Thank you for your inquiry."
+}
+Extract real details from the user request. Output ONLY valid JSON.""",
+
+            "receipt": """You are a professional receipt generator. Based on the user request, generate receipt data in this EXACT JSON format:
+{
+  "receipt_number": "RCP-2024-001",
+  "date": "2024-01-15",
+  "company": {"name": "Your Company", "address": "123 Business St", "city": "City, State 12345", "phone": "(555) 123-4567"},
+  "customer": {"name": "Customer Name", "email": "customer@email.com"},
+  "items": [{"description": "Item/Service", "quantity": 1, "price": 100.00, "total": 100.00}],
+  "subtotal": 100.00,
+  "tax": 0,
+  "total": 100.00,
+  "payment_method": "Credit Card",
+  "payment_reference": "TXN-123456",
+  "notes": "Thank you for your payment!"
+}
+Extract real details from the user request. Output ONLY valid JSON.""",
+
+            "xlsx": """You are a spreadsheet data generator. Based on the user request, generate spreadsheet data as CSV format:
+- First row must be headers
+- Use commas to separate columns
+- Each row on a new line
+- Include calculations descriptions where applicable
+Output ONLY the CSV data, no explanations."""
+        }
+        
+        system_prompt = professional_prompts.get(doc_type, professional_prompts.get("invoice"))
+        
+        # For xlsx, use different approach
+        if doc_type == "xlsx":
+            completion = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=4000
+            )
+            csv_content = completion.choices[0].message.content.strip()
+            if "```" in csv_content:
+                import re
+                match = re.search(r'```(?:csv)?\n?([\s\S]*?)```', csv_content)
+                if match:
+                    csv_content = match.group(1).strip()
+            
+            # Generate Excel file
+            gen_id = str(uuid.uuid4())
+            file_filename = f"{gen_id}.xlsx"
+            file_path = ROOT_DIR / "static" / "files" / file_filename
+            (ROOT_DIR / "static" / "files").mkdir(parents=True, exist_ok=True)
+            
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+            
+            wb = Workbook()
+            ws = wb.active
+            ws.title = doc_name[:30]
+            
+            # Parse CSV and write to Excel
+            rows = csv_content.split('\n')
+            for i, row in enumerate(rows, 1):
+                cells = row.split(',')
+                for j, cell in enumerate(cells, 1):
+                    ws.cell(row=i, column=j, value=cell.strip())
+                    if i == 1:  # Header row
+                        ws.cell(row=i, column=j).font = Font(bold=True)
+                        ws.cell(row=i, column=j).fill = PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
+            
+            # Auto-adjust column widths
+            for col in ws.columns:
+                max_length = max(len(str(cell.value or "")) for cell in col)
+                ws.column_dimensions[col[0].column_letter].width = min(max_length + 2, 50)
+            
+            wb.save(str(file_path))
+            file_url = f"/static/files/{file_filename}"
+            
+            return {
+                "id": gen_id,
+                "file_url": file_url,
+                "filename": f"{doc_name}.xlsx",
+                "content": csv_content,
+                "format": "xlsx",
+                "message": f"Excel spreadsheet created! Download it below."
+            }
+        
+        # For invoices, quotes, receipts - generate structured data then create PDF
+        if doc_type in ["invoice", "quotation", "receipt"]:
+            completion = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=2000
+            )
+            
+            json_response = completion.choices[0].message.content.strip()
+            
+            # Clean JSON if needed
+            if "```" in json_response:
+                import re
+                match = re.search(r'```(?:json)?\n?([\s\S]*?)```', json_response)
+                if match:
+                    json_response = match.group(1).strip()
+            
+            try:
+                doc_data = json.loads(json_response)
+            except:
+                # Fallback to basic text document
+                return await generate_document(data, user)
+            
+            # Generate professional PDF
+            gen_id = str(uuid.uuid4())
+            file_filename = f"{gen_id}.pdf"
+            file_path = ROOT_DIR / "static" / "files" / file_filename
+            (ROOT_DIR / "static" / "files").mkdir(parents=True, exist_ok=True)
+            
+            from reportlab.lib.pagesizes import letter, A4
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib import colors
+            from reportlab.lib.units import inch
+            from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+            
+            doc = SimpleDocTemplate(str(file_path), pagesize=A4,
+                leftMargin=0.5*inch, rightMargin=0.5*inch,
+                topMargin=0.5*inch, bottomMargin=0.5*inch)
+            
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal'], alignment=TA_RIGHT))
+            styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
+            styles.add(ParagraphStyle(name='Title', parent=styles['Heading1'], fontSize=24, spaceAfter=20))
+            styles.add(ParagraphStyle(name='CompanyName', parent=styles['Heading2'], fontSize=16, textColor=colors.HexColor('#333333')))
+            
+            story = []
+            
+            if doc_type == "invoice":
+                # INVOICE header
+                story.append(Paragraph("INVOICE", styles['Title']))
+                story.append(Spacer(1, 10))
+                
+                # Company and Invoice details
+                company = doc_data.get("company", {})
+                story.append(Paragraph(f"<b>{company.get('name', 'Company Name')}</b>", styles['CompanyName']))
+                story.append(Paragraph(company.get('address', ''), styles['Normal']))
+                story.append(Paragraph(company.get('city', ''), styles['Normal']))
+                story.append(Paragraph(f"Email: {company.get('email', '')} | Phone: {company.get('phone', '')}", styles['Normal']))
+                story.append(Spacer(1, 20))
+                
+                # Invoice info table
+                invoice_info = [
+                    ["Invoice #:", doc_data.get('invoice_number', 'INV-001')],
+                    ["Date:", doc_data.get('date', '')],
+                    ["Due Date:", doc_data.get('due_date', '')]
+                ]
+                info_table = Table(invoice_info, colWidths=[100, 200])
+                info_table.setStyle(TableStyle([
+                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ]))
+                story.append(info_table)
+                story.append(Spacer(1, 20))
+                
+                # Bill To
+                client = doc_data.get("client", {})
+                story.append(Paragraph("<b>Bill To:</b>", styles['Normal']))
+                story.append(Paragraph(client.get('name', ''), styles['Normal']))
+                story.append(Paragraph(client.get('address', ''), styles['Normal']))
+                story.append(Paragraph(client.get('city', ''), styles['Normal']))
+                story.append(Spacer(1, 20))
+                
+                # Items table
+                items_data = [["Description", "Qty", "Rate", "Amount"]]
+                for item in doc_data.get("items", []):
+                    items_data.append([
+                        item.get('description', ''),
+                        str(item.get('quantity', 1)),
+                        f"${item.get('rate', 0):,.2f}",
+                        f"${item.get('amount', 0):,.2f}"
+                    ])
+                
+                items_table = Table(items_data, colWidths=[280, 50, 80, 80])
+                items_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4a90d9')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cccccc')),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+                ]))
+                story.append(items_table)
+                story.append(Spacer(1, 10))
+                
+                # Totals
+                totals_data = [
+                    ["Subtotal:", f"${doc_data.get('subtotal', 0):,.2f}"],
+                    ["Tax:", f"${doc_data.get('tax', 0):,.2f}"],
+                    ["TOTAL:", f"${doc_data.get('total', 0):,.2f}"]
+                ]
+                totals_table = Table(totals_data, colWidths=[390, 100])
+                totals_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, -1), (-1, -1), 12),
+                    ('LINEABOVE', (0, -1), (-1, -1), 2, colors.black),
+                ]))
+                story.append(totals_table)
+                story.append(Spacer(1, 30))
+                
+                # Notes and payment info
+                if doc_data.get('notes'):
+                    story.append(Paragraph(f"<b>Notes:</b> {doc_data.get('notes')}", styles['Normal']))
+                if doc_data.get('payment_info'):
+                    story.append(Spacer(1, 10))
+                    story.append(Paragraph(f"<b>Payment Info:</b> {doc_data.get('payment_info')}", styles['Normal']))
+                    
+            elif doc_type == "quotation":
+                # QUOTE header
+                story.append(Paragraph("QUOTATION", styles['Title']))
+                story.append(Spacer(1, 10))
+                
+                company = doc_data.get("company", {})
+                story.append(Paragraph(f"<b>{company.get('name', 'Company Name')}</b>", styles['CompanyName']))
+                story.append(Paragraph(f"{company.get('address', '')} | {company.get('city', '')}", styles['Normal']))
+                story.append(Paragraph(f"Email: {company.get('email', '')} | Phone: {company.get('phone', '')}", styles['Normal']))
+                story.append(Spacer(1, 20))
+                
+                # Quote info
+                quote_info = [
+                    ["Quote #:", doc_data.get('quote_number', 'QT-001')],
+                    ["Date:", doc_data.get('date', '')],
+                    ["Valid Until:", doc_data.get('valid_until', '')]
+                ]
+                info_table = Table(quote_info, colWidths=[100, 200])
+                info_table.setStyle(TableStyle([('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold')]))
+                story.append(info_table)
+                story.append(Spacer(1, 20))
+                
+                # Client
+                client = doc_data.get("client", {})
+                story.append(Paragraph("<b>Quote For:</b>", styles['Normal']))
+                story.append(Paragraph(client.get('name', ''), styles['Normal']))
+                story.append(Paragraph(client.get('company', ''), styles['Normal']))
+                story.append(Paragraph(client.get('address', ''), styles['Normal']))
+                story.append(Spacer(1, 20))
+                
+                # Items
+                items_data = [["Description", "Qty", "Unit Price", "Total"]]
+                for item in doc_data.get("items", []):
+                    items_data.append([
+                        item.get('description', ''),
+                        str(item.get('quantity', 1)),
+                        f"${item.get('unit_price', 0):,.2f}",
+                        f"${item.get('total', 0):,.2f}"
+                    ])
+                
+                items_table = Table(items_data, colWidths=[280, 50, 80, 80])
+                items_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#27ae60')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cccccc')),
+                ]))
+                story.append(items_table)
+                story.append(Spacer(1, 10))
+                
+                # Totals
+                totals_data = [
+                    ["Subtotal:", f"${doc_data.get('subtotal', 0):,.2f}"],
+                    ["Discount:", f"-${doc_data.get('discount', 0):,.2f}"],
+                    ["TOTAL:", f"${doc_data.get('total', 0):,.2f}"]
+                ]
+                totals_table = Table(totals_data, colWidths=[390, 100])
+                totals_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ('LINEABOVE', (0, -1), (-1, -1), 2, colors.black),
+                ]))
+                story.append(totals_table)
+                story.append(Spacer(1, 30))
+                
+                if doc_data.get('terms'):
+                    story.append(Paragraph(f"<b>Terms:</b> {doc_data.get('terms')}", styles['Normal']))
+                    
+            elif doc_type == "receipt":
+                # RECEIPT header
+                story.append(Paragraph("RECEIPT", styles['Title']))
+                story.append(Spacer(1, 10))
+                
+                company = doc_data.get("company", {})
+                story.append(Paragraph(f"<b>{company.get('name', 'Company Name')}</b>", styles['CompanyName']))
+                story.append(Paragraph(company.get('address', ''), styles['Normal']))
+                story.append(Paragraph(company.get('city', ''), styles['Normal']))
+                story.append(Paragraph(company.get('phone', ''), styles['Normal']))
+                story.append(Spacer(1, 20))
+                
+                # Receipt info
+                receipt_info = [
+                    ["Receipt #:", doc_data.get('receipt_number', 'RCP-001')],
+                    ["Date:", doc_data.get('date', '')]
+                ]
+                info_table = Table(receipt_info, colWidths=[100, 200])
+                info_table.setStyle(TableStyle([('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold')]))
+                story.append(info_table)
+                story.append(Spacer(1, 20))
+                
+                # Customer
+                customer = doc_data.get("customer", {})
+                story.append(Paragraph(f"<b>Received From:</b> {customer.get('name', '')}", styles['Normal']))
+                story.append(Spacer(1, 20))
+                
+                # Items
+                items_data = [["Description", "Qty", "Price", "Total"]]
+                for item in doc_data.get("items", []):
+                    items_data.append([
+                        item.get('description', ''),
+                        str(item.get('quantity', 1)),
+                        f"${item.get('price', 0):,.2f}",
+                        f"${item.get('total', 0):,.2f}"
+                    ])
+                
+                items_table = Table(items_data, colWidths=[280, 50, 80, 80])
+                items_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#9b59b6')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cccccc')),
+                ]))
+                story.append(items_table)
+                story.append(Spacer(1, 10))
+                
+                # Total
+                story.append(Paragraph(f"<b>TOTAL PAID: ${doc_data.get('total', 0):,.2f}</b>", styles['RightAlign']))
+                story.append(Spacer(1, 10))
+                story.append(Paragraph(f"Payment Method: {doc_data.get('payment_method', '')}", styles['Normal']))
+                story.append(Paragraph(f"Reference: {doc_data.get('payment_reference', '')}", styles['Normal']))
+                story.append(Spacer(1, 30))
+                
+                if doc_data.get('notes'):
+                    story.append(Paragraph(doc_data.get('notes'), styles['Center']))
+            
+            doc.build(story)
+            file_url = f"/static/files/{file_filename}"
+            
+            # Convert doc_data back to readable text for preview
+            preview_content = json.dumps(doc_data, indent=2)
+            
+            return {
+                "id": gen_id,
+                "file_url": file_url,
+                "filename": f"{doc_name}.pdf",
+                "content": preview_content,
+                "format": "pdf",
+                "message": f"Professional {doc_type} created! Click DOWNLOAD to get your PDF."
+            }
+        
+        # For other document types, use the regular generator
+        return await generate_document(data, user)
+        
+    except Exception as e:
+        logger.error(f"Professional document generation error: {e}")
+        # Fallback to regular document generation
+        return await generate_document(data, user)
+
+@api_router.post("/document/download")
+async def download_document_as_format(data: dict, user = Depends(get_current_user)):
+    """Download document content in specified format"""
+    try:
+        content = data.get("content", "")
+        doc_type = data.get("document_type", "document")
+        doc_name = data.get("document_name", "Document")
+        format = data.get("format", "pdf")
+        
+        gen_id = str(uuid.uuid4())
+        file_path = ROOT_DIR / "static" / "files" / f"{gen_id}.{format}"
+        (ROOT_DIR / "static" / "files").mkdir(parents=True, exist_ok=True)
+        
+        if format == "pdf":
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet
+            from reportlab.lib.units import inch
+            
+            doc = SimpleDocTemplate(str(file_path), pagesize=A4,
+                leftMargin=0.75*inch, rightMargin=0.75*inch,
+                topMargin=0.75*inch, bottomMargin=0.75*inch)
+            styles = getSampleStyleSheet()
+            story = []
+            
+            for line in content.split('\n'):
+                if line.strip():
+                    story.append(Paragraph(line, styles['Normal']))
+                story.append(Spacer(1, 6))
+            
+            doc.build(story)
+            
+        elif format == "docx":
+            from docx import Document
+            doc = Document()
+            for line in content.split('\n'):
+                if line.strip():
+                    doc.add_paragraph(line)
+            doc.save(str(file_path))
+            
+        elif format == "xlsx":
+            from openpyxl import Workbook
+            wb = Workbook()
+            ws = wb.active
+            for i, line in enumerate(content.split('\n'), 1):
+                if line.strip():
+                    cells = line.split(',') if ',' in line else [line]
+                    for j, cell in enumerate(cells, 1):
+                        ws.cell(row=i, column=j, value=cell.strip())
+            wb.save(str(file_path))
+            
+        else:
+            with open(file_path, 'w') as f:
+                f.write(content)
+        
+        from fastapi.responses import FileResponse
+        return FileResponse(
+            path=str(file_path),
+            filename=f"{doc_name}.{format}",
+            media_type='application/octet-stream'
+        )
+        
+    except Exception as e:
+        logger.error(f"Document download error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============== PROJECTS ==============
 
 @api_router.post("/projects")
