@@ -1343,12 +1343,16 @@ const Sidebar = ({ mode, setMode, sessions, currentSession, setCurrentSession, s
 
       {/* Navigation */}
       <div className="p-4 border-b border-white/10">
+        <p className="font-mono text-xs text-muted-foreground uppercase mb-2">Tools</p>
         <div className="space-y-1">
           <button onClick={() => navigate("/projects")} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 text-left">
             <FolderOpen className="w-4 h-4 text-muted-foreground" /><span className="text-sm">Projects</span>
           </button>
           <button onClick={() => navigate("/build")} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 text-left">
             <Hammer className="w-4 h-4 text-muted-foreground" /><span className="text-sm">Build</span>
+          </button>
+          <button onClick={() => navigate("/documents")} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 text-left">
+            <FileCode className="w-4 h-4 text-cyan-400" /><span className="text-sm">AI Document Studio</span>
           </button>
         </div>
       </div>
