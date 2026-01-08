@@ -1328,8 +1328,8 @@ const DocumentStudio = ({ onBack }) => {
           <Input 
             value={documentName} 
             onChange={(e) => setDocumentName(e.target.value)}
-            className="w-48 h-8 text-sm bg-white/5 border-white/10"
-            placeholder="Document name..."
+            className="w-56 h-8 text-sm bg-white/5 border-white/10"
+            placeholder="Auto-named from your request..."
           />
         </div>
       </div>
