@@ -1658,37 +1658,6 @@ Output ONLY the CSV data, no explanations."""
                     story.append(Paragraph(doc_data.get('notes'), ParagraphStyle('ThankYou', fontSize=10, alignment=TA_CENTER, textColor=colors.HexColor('#666666'))))
                 else:
                     story.append(Paragraph("Thank you for your purchase!", ParagraphStyle('ThankYou', fontSize=10, alignment=TA_CENTER, textColor=colors.HexColor('#666666'))))
-                
-                # Items
-                items_data = [["Description", "Qty", "Price", "Total"]]
-                for item in doc_data.get("items", []):
-                    items_data.append([
-                        item.get('description', ''),
-                        str(item.get('quantity', 1)),
-                        f"${item.get('price', 0):,.2f}",
-                        f"${item.get('total', 0):,.2f}"
-                    ])
-                
-                items_table = Table(items_data, colWidths=[280, 50, 80, 80])
-                items_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#9b59b6')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cccccc')),
-                ]))
-                story.append(items_table)
-                story.append(Spacer(1, 10))
-                
-                # Total
-                story.append(Paragraph(f"<b>TOTAL PAID: ${doc_data.get('total', 0):,.2f}</b>", styles['RightAlign']))
-                story.append(Spacer(1, 10))
-                story.append(Paragraph(f"Payment Method: {doc_data.get('payment_method', '')}", styles['Normal']))
-                story.append(Paragraph(f"Reference: {doc_data.get('payment_reference', '')}", styles['Normal']))
-                story.append(Spacer(1, 30))
-                
-                if doc_data.get('notes'):
-                    story.append(Paragraph(doc_data.get('notes'), styles['Center']))
             
             doc.build(story)
             file_url = f"/static/files/{file_filename}"
