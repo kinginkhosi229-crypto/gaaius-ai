@@ -15,7 +15,8 @@ import {
   MessageSquare, Image, Video, Mic, MicOff, Send, Plus, Trash2, Volume2,
   Loader2, Sparkles, Zap, Menu, X, Download, User, LogOut, Crown, Music,
   FileCode, FolderOpen, Hammer, Eye, Code, Settings, CreditCard, Edit, Save,
-  Terminal, Play, ChevronRight, File, Folder, RefreshCw, Copy, Check
+  Terminal, Play, ChevronRight, File, Folder, RefreshCw, Copy, Check,
+  Maximize2, Minimize2
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 
@@ -468,6 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
     { type: "system", text: "GAAIUS AI Builder Terminal v1.0" },
     { type: "system", text: "Ready for commands..." }
   ]);
+  const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
   const [showFileTree, setShowFileTree] = useState(true);
 
   // Get file language for Monaco
