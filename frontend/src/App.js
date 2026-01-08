@@ -1505,18 +1505,76 @@ const DocumentStudio = ({ onBack }) => {
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-cyan-400" />
               <span className="text-sm font-mono">Document Preview</span>
+              {documentContent && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setIsEditing(!isEditing)} 
+                  className={`h-6 text-xs ml-2 ${isEditing ? 'bg-cyan-500/20 text-cyan-400' : ''}`}
+                >
+                  <Edit className="w-3 h-3 mr-1" /> {isEditing ? "Preview" : "Edit"}
+                </Button>
+              )}
             </div>
             {documentContent && (
-              <Button size="sm" variant="outline" onClick={() => downloadDocument({ name: `${documentName}.txt` })} className="h-7 text-xs">
-                <Download className="w-3 h-3 mr-1" /> Export
-              </Button>
+              <div className="flex items-center gap-2 relative">
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                  className="h-7 text-xs bg-cyan-600 hover:bg-cyan-700"
+                >
+                  <Download className="w-3 h-3 mr-1" /> DOWNLOAD
+                </Button>
+                {showDownloadMenu && (
+                  <div className="absolute top-full right-0 mt-1 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl z-50 min-w-[150px]">
+                    <button onClick={() => downloadDocument("pdf")} className="w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                      📄 PDF (Default)
+                    </button>
+                    <button onClick={() => downloadDocument("docx")} className="w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                      📝 Word (.docx)
+                    </button>
+                    {(documentType === "xlsx" || documentContent.includes(',')) && (
+                      <button onClick={() => downloadDocument("xlsx")} className="w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                        📊 Excel (.xlsx)
+                      </button>
+                    )}
+                    <button onClick={() => downloadDocument("txt")} className="w-full px-3 py-2 text-left text-xs hover:bg-white/5 flex items-center gap-2">
+                      📃 Text (.txt)
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-          <div className="flex-1 overflow-auto p-6 bg-white">
+          <div className="flex-1 overflow-auto bg-white">
             {documentContent ? (
-              <div className="max-w-3xl mx-auto text-black prose prose-sm">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{documentContent}</pre>
-              </div>
+              isEditing ? (
+                <textarea
+                  value={documentContent}
+                  onChange={(e) => setDocumentContent(e.target.value)}
+                  className="w-full h-full p-6 text-black text-sm font-mono resize-none focus:outline-none"
+                  placeholder="Edit your document here..."
+                />
+              ) : (
+                <div className="max-w-3xl mx-auto p-8 text-black">
+                  {/* Render as formatted document based on type */}
+                  {(documentType === "invoice" || documentType === "quotation" || documentType === "receipt") ? (
+                    <div className="border border-gray-200 rounded-lg shadow-sm">
+                      <div className="bg-gray-50 p-6 border-b">
+                        <h1 className="text-2xl font-bold text-gray-800">{documentType.toUpperCase()}</h1>
+                        <p className="text-sm text-gray-500">{documentName || "Document"}</p>
+                      </div>
+                      <div className="p-6 whitespace-pre-wrap text-sm leading-relaxed">
+                        {documentContent}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm max-w-none">
+                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-800">{documentContent}</pre>
+                    </div>
+                  )}
+                </div>
+              )
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-gray-400">
                 <FileCode className="w-16 h-16 mb-4 opacity-30" />
