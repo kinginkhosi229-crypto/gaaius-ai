@@ -1072,13 +1072,49 @@ const DocumentStudio = ({ onBack }) => {
   const [prompt, setPrompt] = useState("");
   const [documentContent, setDocumentContent] = useState("");
   const [documentType, setDocumentType] = useState("invoice");
-  const [documentName, setDocumentName] = useState("Untitled Document");
+  const [documentName, setDocumentName] = useState("");
   const [loading, setLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [activeTab, setActiveTab] = useState("create");
   const [generatedFiles, setGeneratedFiles] = useState([]);
   const [invoiceType, setInvoiceType] = useState("standard");
+  const [downloadFormat, setDownloadFormat] = useState("pdf");
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const { user } = useAuthStore();
+
+  // Auto-generate document name from first prompt
+  const generateDocumentName = (promptText) => {
+    const words = promptText.toLowerCase().split(' ');
+    // Find key words to create a meaningful name
+    const keyWords = ['invoice', 'quote', 'receipt', 'contract', 'proposal', 'report', 'letter', 'resume', 'nda'];
+    const clientMatch = promptText.match(/(?:client|for|to)[:\s]+([A-Z][a-zA-Z\s]+?)(?:,|\.|\s+(?:project|amount|services|total))/i);
+    const amountMatch = promptText.match(/\$[\d,]+(?:\.\d{2})?/);
+    
+    let name = "";
+    
+    // Find document type word
+    const typeWord = keyWords.find(kw => words.includes(kw)) || documentType;
+    name = typeWord.charAt(0).toUpperCase() + typeWord.slice(1);
+    
+    // Add client name if found
+    if (clientMatch && clientMatch[1]) {
+      name += ` - ${clientMatch[1].trim()}`;
+    }
+    
+    // Add amount if found
+    if (amountMatch) {
+      name += ` ${amountMatch[0]}`;
+    }
+    
+    // If name is too short, use first few meaningful words
+    if (name.length < 10) {
+      const meaningfulWords = words.filter(w => w.length > 3 && !['create', 'make', 'generate', 'professional', 'please', 'with', 'that', 'this', 'from'].includes(w));
+      name = meaningfulWords.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+    
+    return name || `${documentType.charAt(0).toUpperCase() + documentType.slice(1)} ${new Date().toLocaleDateString()}`;
+  };
 
   const documentTypes = [
     { id: "invoice", label: "Invoice", icon: "🧾", description: "Professional invoices" },
@@ -1127,12 +1163,21 @@ const DocumentStudio = ({ onBack }) => {
     quotation: [
       { label: "Service Quotation", prompt: "Create a detailed quotation for IT support services. Include monthly support package ($1,500), on-site visits ($150/hour), hardware procurement (at cost + 10%), and software licensing management." },
       { label: "Product Quote", prompt: "Create a product quotation for office furniture supply. Items: 20 ergonomic chairs ($350 each), 20 standing desks ($500 each), 5 conference tables ($800 each). Include bulk discount 10%, delivery, and installation." }
+    ],
+    receipt: [
+      { label: "Payment Receipt", prompt: "Create a payment receipt for consulting services. Client: Tech Solutions Inc, Amount: $2,500, Payment method: Bank Transfer, Date: Today, Reference: INV-2024-001" },
+      { label: "Sales Receipt", prompt: "Create a sales receipt for software license purchase. Customer: Digital Agency, Product: Enterprise License, Amount: $999, Payment: Credit Card ending 4242" }
     ]
   };
 
   const handleGenerate = async () => {
     if (!prompt.trim() || loading) return;
     setLoading(true);
+    
+    // Auto-generate document name if empty
+    if (!documentName.trim()) {
+      setDocumentName(generateDocumentName(prompt));
+    }
     
     // Build enhanced prompt based on document type
     let enhancedPrompt = prompt;
@@ -1143,46 +1188,63 @@ const DocumentStudio = ({ onBack }) => {
     setChatHistory(prev => [...prev, { role: "user", content: prompt }]);
     
     try {
-      const res = await api.post("/document/generate", { 
+      const res = await api.post("/document/generate-professional", { 
         prompt: enhancedPrompt, 
         document_type: documentType,
         current_content: documentContent,
-        document_name: documentName
+        document_name: documentName || generateDocumentName(prompt),
+        output_format: downloadFormat
       });
       
       if (res.data.content) {
         setDocumentContent(res.data.content);
       }
       if (res.data.file_url) {
+        const fileName = documentName || generateDocumentName(prompt);
         setGeneratedFiles(prev => [{ 
-          name: res.data.filename || `${documentName}.pdf`,
+          name: res.data.filename || `${fileName}.${res.data.format || 'pdf'}`,
           url: res.data.file_url,
           type: documentType,
+          format: res.data.format || 'pdf',
           timestamp: new Date().toISOString()
         }, ...prev]);
       }
       
+      // Auto-set document name if not set
+      if (!documentName.trim()) {
+        setDocumentName(generateDocumentName(prompt));
+      }
+      
       setChatHistory(prev => [...prev, { 
         role: "assistant", 
-        content: res.data.message || `✅ Your ${documentType} has been created! You can preview it on the right and download it.`
+        content: res.data.message || `✅ Your ${documentType} has been created! You can preview and edit it on the right, then download as PDF.`
       }]);
       toast.success("Document generated!");
     } catch (error) {
+      // Fallback to regular document generation
       try {
-        const fallbackRes = await api.post("/file/generate", { prompt: enhancedPrompt, file_type: "document" });
+        const fallbackRes = await api.post("/document/generate", { 
+          prompt: enhancedPrompt, 
+          document_type: documentType,
+          document_name: documentName || generateDocumentName(prompt)
+        });
         if (fallbackRes.data) {
           setDocumentContent(fallbackRes.data.content || "");
           if (fallbackRes.data.file_url) {
             setGeneratedFiles(prev => [{ 
-              name: `${documentName}.md`,
+              name: `${documentName || generateDocumentName(prompt)}.pdf`,
               url: fallbackRes.data.file_url,
               type: documentType,
+              format: 'pdf',
               timestamp: new Date().toISOString()
             }, ...prev]);
           }
+          if (!documentName.trim()) {
+            setDocumentName(generateDocumentName(prompt));
+          }
           setChatHistory(prev => [...prev, { 
             role: "assistant", 
-            content: "✅ Document created! Check the preview panel."
+            content: "✅ Document created! You can edit it in the preview panel."
           }]);
         }
       } catch (e) {
@@ -1195,19 +1257,53 @@ const DocumentStudio = ({ onBack }) => {
     }
   };
 
-  const downloadDocument = (file) => {
-    if (file.url) {
-      window.open(`${BACKEND_URL}${file.url}`, '_blank');
-    } else {
+  const downloadDocument = async (format = "pdf") => {
+    if (!documentContent && generatedFiles.length === 0) {
+      toast.error("No document to download");
+      return;
+    }
+    
+    // If we have a generated file URL, use it
+    if (generatedFiles.length > 0 && generatedFiles[0].url) {
+      window.open(`${BACKEND_URL}${generatedFiles[0].url}`, '_blank');
+      toast.success("Download started!");
+      return;
+    }
+    
+    // Otherwise, generate and download
+    try {
+      const res = await api.post("/document/download", {
+        content: documentContent,
+        document_type: documentType,
+        document_name: documentName || "Document",
+        format: format
+      }, { responseType: 'blob' });
+      
+      const blob = new Blob([res.data], { 
+        type: format === 'pdf' ? 'application/pdf' : 
+              format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
+              format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+              'text/plain'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${documentName || 'Document'}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Downloaded as ${format.toUpperCase()}!`);
+    } catch (error) {
+      // Fallback to text download
       const blob = new Blob([documentContent], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = file.name || `${documentName}.txt`;
+      a.download = `${documentName || 'Document'}.txt`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success("Downloaded!");
     }
-    toast.success("Download started!");
+    setShowDownloadMenu(false);
   };
 
   const applyTemplate = (template) => {
