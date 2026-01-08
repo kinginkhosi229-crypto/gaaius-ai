@@ -2234,7 +2234,7 @@ const MainApp = () => {
         return; // Don't wait
       } else if (mode === "video") {
         trackGeneration(); // Track for ads
-        const toastId = toast.loading("Generating video... You can continue using other features");
+        const toastId = toast.loading("Generating video...");
         // Run video generation in background (non-blocking)
         api.post("/video/generate", { prompt: userInput, duration: 5, style: videoStyle, session_id: currentSession?.id }, { timeout: 600000 })
           .then(res => {
