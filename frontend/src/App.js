@@ -615,36 +615,80 @@ const ProjectsPage = () => {
 const DocumentStudio = ({ onBack }) => {
   const [prompt, setPrompt] = useState("");
   const [documentContent, setDocumentContent] = useState("");
-  const [documentType, setDocumentType] = useState("pdf");
+  const [documentType, setDocumentType] = useState("invoice");
   const [documentName, setDocumentName] = useState("Untitled Document");
   const [loading, setLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [activeTab, setActiveTab] = useState("create");
   const [generatedFiles, setGeneratedFiles] = useState([]);
+  const [invoiceType, setInvoiceType] = useState("standard");
   const { user } = useAuthStore();
 
   const documentTypes = [
-    { id: "pdf", label: "PDF Document", icon: "📄" },
-    { id: "docx", label: "Word Document", icon: "📝" },
-    { id: "xlsx", label: "Excel Spreadsheet", icon: "📊" },
-    { id: "invoice", label: "Invoice", icon: "🧾" },
-    { id: "contract", label: "Contract/Agreement", icon: "⚖️" },
-    { id: "proposal", label: "Business Proposal", icon: "💼" },
-    { id: "resume", label: "CV/Resume", icon: "👤" },
-    { id: "letter", label: "Letter", icon: "✉️" },
-    { id: "report", label: "Report", icon: "📋" },
-    { id: "presentation", label: "Presentation", icon: "📽️" }
+    { id: "invoice", label: "Invoice", icon: "🧾", description: "Professional invoices" },
+    { id: "contract", label: "Contract/Agreement", icon: "⚖️", description: "Legal contracts" },
+    { id: "proposal", label: "Business Proposal", icon: "💼", description: "Project proposals" },
+    { id: "resume", label: "CV/Resume", icon: "👤", description: "Professional resumes" },
+    { id: "letter", label: "Business Letter", icon: "✉️", description: "Formal letters" },
+    { id: "report", label: "Report", icon: "📋", description: "Business reports" },
+    { id: "pdf", label: "PDF Document", icon: "📄", description: "General PDF" },
+    { id: "docx", label: "Word Document", icon: "📝", description: "MS Word format" },
+    { id: "xlsx", label: "Excel Spreadsheet", icon: "📊", description: "Data spreadsheets" },
+    { id: "nda", label: "NDA Agreement", icon: "🔒", description: "Non-disclosure" },
+    { id: "quotation", label: "Quotation/Quote", icon: "💰", description: "Price quotes" },
+    { id: "receipt", label: "Receipt", icon: "🧾", description: "Payment receipts" }
   ];
+
+  const invoiceTypes = [
+    { id: "standard", label: "Standard Invoice", description: "Basic invoice for products/services" },
+    { id: "freelance", label: "Freelancer Invoice", description: "For independent contractors" },
+    { id: "consulting", label: "Consulting Invoice", description: "Professional consulting services" },
+    { id: "recurring", label: "Recurring Invoice", description: "Monthly/weekly billing" },
+    { id: "proforma", label: "Proforma Invoice", description: "Preliminary bill before delivery" },
+    { id: "commercial", label: "Commercial Invoice", description: "International trade/export" },
+    { id: "credit", label: "Credit Note", description: "Refund or adjustment" },
+    { id: "debit", label: "Debit Note", description: "Additional charges" },
+    { id: "timesheet", label: "Timesheet Invoice", description: "Hourly/daily billing" },
+    { id: "milestone", label: "Milestone Invoice", description: "Project milestone billing" }
+  ];
+
+  const quickTemplates = {
+    invoice: [
+      { label: "Web Development Invoice", prompt: "Create a professional web development invoice for a React website project. Client: ABC Corp, Amount: $5,000, 50% deposit paid, balance due in 30 days. Include itemized services: Frontend development, Backend API, Database setup, Testing & QA." },
+      { label: "Freelance Design Invoice", prompt: "Create a freelancer invoice for graphic design services. Client: XYZ Marketing, Services: Logo design ($500), Brand guidelines ($300), Social media templates ($200). Total: $1,000, Net 15 payment terms." },
+      { label: "Consulting Services Invoice", prompt: "Create a consulting invoice for business strategy consulting. Client: StartupCo, Rate: $150/hour, Hours: 20, Total: $3,000. Include consultation sessions, market analysis, and strategic recommendations." },
+      { label: "SaaS Subscription Invoice", prompt: "Create a recurring subscription invoice for SaaS software. Client: Enterprise Ltd, Plan: Professional ($299/month), Add-ons: Priority support ($50), Extra storage ($25). Total: $374/month." }
+    ],
+    contract: [
+      { label: "Freelance Contract", prompt: "Create a freelance services contract for web development. Include scope of work, payment terms (50% upfront, 50% on completion), timeline (6 weeks), intellectual property transfer, and termination clause." },
+      { label: "NDA Agreement", prompt: "Create a mutual non-disclosure agreement for business partnership discussions. Include confidentiality obligations, exclusions, term (2 years), and governing law." },
+      { label: "Service Agreement", prompt: "Create a professional services agreement for ongoing marketing services. Monthly retainer: $2,500, deliverables, reporting requirements, and 30-day termination notice." }
+    ],
+    proposal: [
+      { label: "Web Project Proposal", prompt: "Create a comprehensive web development proposal for an e-commerce website. Include executive summary, scope, timeline (12 weeks), team, technology stack (React, Node.js, PostgreSQL), pricing tiers, and terms." },
+      { label: "Marketing Proposal", prompt: "Create a digital marketing proposal for a B2B company. Include current situation analysis, proposed strategy, deliverables (SEO, PPC, content marketing), KPIs, budget ($5,000/month), and ROI projections." }
+    ],
+    quotation: [
+      { label: "Service Quotation", prompt: "Create a detailed quotation for IT support services. Include monthly support package ($1,500), on-site visits ($150/hour), hardware procurement (at cost + 10%), and software licensing management." },
+      { label: "Product Quote", prompt: "Create a product quotation for office furniture supply. Items: 20 ergonomic chairs ($350 each), 20 standing desks ($500 each), 5 conference tables ($800 each). Include bulk discount 10%, delivery, and installation." }
+    ]
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim() || loading) return;
     setLoading(true);
+    
+    // Build enhanced prompt based on document type
+    let enhancedPrompt = prompt;
+    if (documentType === "invoice" && invoiceType !== "standard") {
+      enhancedPrompt = `Create a ${invoiceTypes.find(t => t.id === invoiceType)?.label || invoiceType} invoice. ${prompt}`;
+    }
+    
     setChatHistory(prev => [...prev, { role: "user", content: prompt }]);
     
     try {
-      // Call document generation API
       const res = await api.post("/document/generate", { 
-        prompt, 
+        prompt: enhancedPrompt, 
         document_type: documentType,
         current_content: documentContent,
         document_name: documentName
@@ -655,7 +699,7 @@ const DocumentStudio = ({ onBack }) => {
       }
       if (res.data.file_url) {
         setGeneratedFiles(prev => [{ 
-          name: res.data.filename || `${documentName}.${documentType}`,
+          name: res.data.filename || `${documentName}.pdf`,
           url: res.data.file_url,
           type: documentType,
           timestamp: new Date().toISOString()
@@ -664,18 +708,17 @@ const DocumentStudio = ({ onBack }) => {
       
       setChatHistory(prev => [...prev, { 
         role: "assistant", 
-        content: res.data.message || "Document created! You can preview and download it."
+        content: res.data.message || `✅ Your ${documentType} has been created! You can preview it on the right and download it.`
       }]);
       toast.success("Document generated!");
     } catch (error) {
-      // Fallback to file generation endpoint
       try {
-        const fallbackRes = await api.post("/file/generate", { prompt, file_type: documentType === "xlsx" ? "data" : "document" });
+        const fallbackRes = await api.post("/file/generate", { prompt: enhancedPrompt, file_type: "document" });
         if (fallbackRes.data) {
           setDocumentContent(fallbackRes.data.content || "");
           if (fallbackRes.data.file_url) {
             setGeneratedFiles(prev => [{ 
-              name: `${documentName}.${documentType === "xlsx" ? "csv" : "md"}`,
+              name: `${documentName}.md`,
               url: fallbackRes.data.file_url,
               type: documentType,
               timestamp: new Date().toISOString()
@@ -683,11 +726,11 @@ const DocumentStudio = ({ onBack }) => {
           }
           setChatHistory(prev => [...prev, { 
             role: "assistant", 
-            content: "I've created your document. Check the preview!"
+            content: "✅ Document created! Check the preview panel."
           }]);
         }
       } catch (e) {
-        setChatHistory(prev => [...prev, { role: "assistant", content: "Error generating document. Please try again." }]);
+        setChatHistory(prev => [...prev, { role: "assistant", content: "❌ Error generating document. Please try again." }]);
         toast.error("Generation failed");
       }
     } finally {
@@ -709,6 +752,11 @@ const DocumentStudio = ({ onBack }) => {
       URL.revokeObjectURL(url);
     }
     toast.success("Download started!");
+  };
+
+  const applyTemplate = (template) => {
+    setPrompt(template.prompt);
+    toast.info(`Template loaded: ${template.label}`);
   };
 
   return (
