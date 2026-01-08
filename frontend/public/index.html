@@ -117,5 +117,19 @@
                 person_profiles: "identified_only", // or 'always' to create profiles for anonymous users as well
             });
         </script>
+        <script>
+            // Register Service Worker for PWA
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then((registration) => {
+                            console.log('GAAIUS AI: Service Worker registered:', registration.scope);
+                        })
+                        .catch((error) => {
+                            console.log('GAAIUS AI: Service Worker registration failed:', error);
+                        });
+                });
+            }
+        </script>
     </body>
 </html>
