@@ -1290,14 +1290,14 @@ Output ONLY the CSV data, no explanations."""
             styles = getSampleStyleSheet()
             styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal'], alignment=TA_RIGHT))
             styles.add(ParagraphStyle(name='Center', parent=styles['Normal'], alignment=TA_CENTER))
-            styles.add(ParagraphStyle(name='Title', parent=styles['Heading1'], fontSize=24, spaceAfter=20))
+            styles.add(ParagraphStyle(name='DocTitle', parent=styles['Heading1'], fontSize=24, spaceAfter=20))
             styles.add(ParagraphStyle(name='CompanyName', parent=styles['Heading2'], fontSize=16, textColor=colors.HexColor('#333333')))
             
             story = []
             
             if doc_type == "invoice":
                 # INVOICE header
-                story.append(Paragraph("INVOICE", styles['Title']))
+                story.append(Paragraph("INVOICE", styles['DocTitle']))
                 story.append(Spacer(1, 10))
                 
                 # Company and Invoice details
