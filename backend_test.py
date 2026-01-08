@@ -648,7 +648,8 @@ class GAAIUSAPITester:
 
 def main():
     tester = GAAIUSAPITester()
-    success = tester.run_all_tests()
+    # Run the specific tests requested in the review
+    success = tester.run_requested_tests()
     return 0 if success else 1
 
 if __name__ == "__main__":
