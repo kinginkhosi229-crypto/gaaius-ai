@@ -1792,42 +1792,263 @@ async def update_project_files(project_id: str, files: dict, user = Depends(get_
     )
     return {"status": "updated"}
 
-# ============== BUILD/VIBE CODING ==============
+# ============== GAAIUS BUILD BRAIN (Production-Grade AI Builder) ==============
+
+# GAAIUS BUILD BRAIN - The Intelligence Layer
+GAAIUS_SYSTEM_PROMPT = """SYSTEM: GAAIUS AI BUILDER - PRODUCTION-GRADE APPLICATION BUILDER
+
+You are NOT a demo generator.
+You are NOT creating minimal examples.
+You are a PRODUCTION-GRADE application builder.
+
+MANDATORY RULES:
+1. NEVER generate minimal, ugly, or demo-quality UI
+2. ALWAYS prioritize UI/UX quality - this must look investor-ready
+3. ALWAYS use modern UI patterns with proper spacing, typography, and icons
+4. ALWAYS use Tailwind CSS with professional component patterns
+5. The output must look like a real, launched product
+6. If a request is vague, make STRONG design decisions - never simplify
+
+DESIGN STANDARDS (NON-NEGOTIABLE):
+- Spacing: Minimum 16px padding, proper margins
+- Typography: Clear hierarchy (headings, subheadings, body)
+- Colors: Professional color palette with proper contrast
+- Icons: Use inline SVG icons or icon CDN
+- Layout: Use CSS Grid/Flexbox for proper alignment
+- Responsive: Must work on mobile, tablet, desktop
+- Interactivity: Hover states, transitions, animations
+- Images: Use real placeholder images (picsum.photos, placehold.co)
+
+FORCED FRONTEND STACK:
+- Tailwind CSS (via CDN)
+- Modern JavaScript (ES6+)
+- Google Fonts (Inter, Poppins, or similar)
+- Lucide Icons or Heroicons (via CDN)
+- Smooth transitions and animations
+
+OUTPUT FORMAT:
+Return ONLY a complete, production-ready HTML file.
+NO markdown. NO explanations. NO code blocks.
+Just pure HTML that runs perfectly."""
+
+def compile_user_prompt(raw_prompt):
+    """PROMPT COMPILER - Converts vague user input into detailed spec"""
+    
+    prompt_lower = raw_prompt.lower()
+    
+    # Detect app type and expand
+    app_expansions = {
+        "youtube": "modern video streaming platform with: dark theme, sidebar navigation (Home, Trending, Subscriptions, Library), top navbar with search bar and user avatar, main content area with video grid (thumbnails, titles, channel names, view counts, timestamps), video player page, comments section, related videos sidebar, channel pages, responsive design",
+        "spotify": "music streaming application with: dark theme (#121212), left sidebar (Home, Search, Library, Playlists), top bar with navigation and user menu, main content area with album grids, artist pages, playlist views, bottom player bar (album art, play/pause/skip controls, progress bar, volume), search with filters, responsive design",
+        "netflix": "video streaming service with: dark theme, top navbar (logo, navigation, search, notifications, profile), hero banner with featured content, horizontal scrolling content rows (Trending, Continue Watching, New Releases), hover preview cards with details, categories, responsive design",
+        "twitter": "social media platform with: light/dark theme toggle, left sidebar (Home, Explore, Notifications, Messages, Profile), main feed with tweets (avatar, username, content, images, engagement buttons), right sidebar (search, trends, who to follow), compose tweet modal, responsive design",
+        "instagram": "photo sharing app with: top navbar (logo, search, icons), stories row, main feed with posts (user info, image, like/comment/share buttons, caption), right sidebar with suggestions, profile pages with grid layout, bottom mobile navigation, responsive design",
+        "amazon": "e-commerce platform with: top navbar (logo, search bar, account, cart), category navigation, hero carousel, product grids with cards (image, title, rating, price, Prime badge), filters sidebar, product detail pages, cart functionality, responsive design",
+        "dashboard": "admin dashboard with: sidebar navigation (collapsible), top header (search, notifications, profile), main content with stat cards, charts (line, bar, pie), data tables with sorting/filtering, activity feed, responsive grid layout",
+        "landing": "modern landing page with: navbar (logo, links, CTA button), hero section (headline, subheadline, CTA, image), features section (icon cards), testimonials, pricing table, FAQ accordion, footer, smooth scroll animations",
+        "portfolio": "portfolio website with: navbar (name, links), hero with introduction, about section, skills/tech stack, projects gallery with hover effects, testimonials, contact form, social links, responsive design",
+        "blog": "blog platform with: navbar (logo, categories, search), featured post hero, post grid with cards (image, category, title, excerpt, date), sidebar (about, categories, tags, newsletter), single post view, comments, responsive design",
+        "chat": "messaging application with: sidebar with conversation list, main chat area with message bubbles, message input with emoji/attachment support, user presence indicators, search conversations, responsive design"
+    }
+    
+    # Find matching expansion
+    expansion = ""
+    for key, value in app_expansions.items():
+        if key in prompt_lower:
+            expansion = value
+            break
+    
+    # Build compiled prompt
+    if expansion:
+        compiled = f"""BUILD REQUEST: Create a complete, production-ready {raw_prompt}
+
+DESIGN SPECIFICATION:
+{expansion}
+
+QUALITY REQUIREMENTS:
+- UI must look investor-ready and professionally designed
+- All sections must be fully implemented with realistic content
+- Include working interactivity (hover states, click handlers, modals)
+- Use high-quality placeholder images from picsum.photos
+- Implement smooth animations and transitions
+- Ensure full responsiveness for all screen sizes
+
+OUTPUT: Complete HTML file only. No explanations."""
+    else:
+        compiled = f"""BUILD REQUEST: {raw_prompt}
+
+DESIGN SPECIFICATION:
+Create a modern, professional, production-ready implementation with:
+- Clean, spacious layout with proper visual hierarchy
+- Professional typography and color scheme
+- Navigation, header, main content, and footer sections
+- Interactive elements with hover states and transitions
+- Realistic sample content and images
+- Full mobile responsiveness
+
+QUALITY REQUIREMENTS:
+- Must look like a real, launched product
+- Investor-ready quality
+- No minimal demos or wireframes
+
+OUTPUT: Complete HTML file only. No explanations."""
+    
+    return compiled
+
+def quality_check(html_code):
+    """QUALITY GATE - Checks if generated code meets standards"""
+    issues = []
+    score = 100
+    
+    # Check for Tailwind CSS
+    if "tailwindcss" not in html_code.lower():
+        issues.append("Missing Tailwind CSS")
+        score -= 20
+    
+    # Check for proper structure
+    if "<nav" not in html_code.lower() and "navbar" not in html_code.lower():
+        issues.append("Missing navigation")
+        score -= 10
+    
+    # Check for responsive classes
+    responsive_classes = ["md:", "lg:", "sm:", "xl:"]
+    has_responsive = any(rc in html_code for rc in responsive_classes)
+    if not has_responsive:
+        issues.append("Missing responsive design")
+        score -= 15
+    
+    # Check for proper spacing
+    spacing_classes = ["p-", "px-", "py-", "m-", "mx-", "my-", "gap-", "space-"]
+    has_spacing = any(sc in html_code for sc in spacing_classes)
+    if not has_spacing:
+        issues.append("Missing proper spacing")
+        score -= 10
+    
+    # Check for icons
+    if "svg" not in html_code.lower() and "lucide" not in html_code.lower() and "heroicon" not in html_code.lower():
+        issues.append("Missing icons")
+        score -= 5
+    
+    # Check for images
+    if "img" not in html_code.lower() and "background-image" not in html_code.lower():
+        issues.append("Missing images")
+        score -= 5
+    
+    # Check for interactivity
+    if "onclick" not in html_code.lower() and "hover:" not in html_code and "transition" not in html_code.lower():
+        issues.append("Missing interactivity")
+        score -= 10
+    
+    # Check for proper font
+    if "font-" not in html_code or "googleapis.com/css" not in html_code:
+        issues.append("Missing custom fonts")
+        score -= 5
+    
+    return {
+        "score": max(0, score),
+        "passed": score >= 70,
+        "issues": issues
+    }
 
 @api_router.post("/build/generate")
 async def build_generate(data: dict, user = Depends(get_current_user)):
-    """Generate REAL, COMPLETE web applications like YouTube, Spotify, etc."""
+    """GAAIUS BUILD BRAIN - Production-Grade Application Builder"""
     try:
-        prompt = data.get("prompt", "")
+        raw_prompt = data.get("prompt", "")
         current_code = data.get("current_code", "")
         
-        # Enhanced system prompt for building REAL applications
-        system_prompt = """You are GAAIUS AI Builder - an expert full-stack developer that creates REAL, COMPLETE, PRODUCTION-READY web applications.
+        # STEP 1: Compile user prompt into detailed spec
+        compiled_prompt = compile_user_prompt(raw_prompt)
+        
+        # STEP 2: Build with quality system prompt
+        messages = [
+            {"role": "system", "content": GAAIUS_SYSTEM_PROMPT},
+        ]
+        
+        if current_code and len(current_code) > 100:
+            messages.append({"role": "user", "content": f"CURRENT CODE:\n{current_code}\n\nUPDATE REQUEST:\n{compiled_prompt}\n\nReturn the complete updated HTML file."})
+        else:
+            messages.append({"role": "user", "content": compiled_prompt})
+        
+        # STEP 3: Generate code
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.4,
+            max_tokens=8000
+        )
+        
+        code = completion.choices[0].message.content
+        
+        # Clean up code blocks
+        if "```" in code:
+            import re
+            code_match = re.search(r'```(?:html)?\n?([\s\S]*?)```', code)
+            if code_match:
+                code = code_match.group(1)
+        
+        code = code.strip()
+        
+        # Ensure it starts with DOCTYPE
+        if not code.lower().startswith('<!doctype'):
+            html_start = code.lower().find('<!doctype')
+            if html_start == -1:
+                html_start = code.lower().find('<html')
+            if html_start > 0:
+                code = code[html_start:]
+        
+        # STEP 4: Quality Gate
+        quality = quality_check(code)
+        
+        # STEP 5: If quality too low, regenerate with stricter prompt
+        if not quality["passed"] and quality["score"] < 50:
+            logger.info(f"Quality score {quality['score']} too low, regenerating...")
+            
+            regenerate_prompt = f"""{compiled_prompt}
 
-When a user asks to build something like "YouTube", "Spotify", "Netflix", "Twitter", "Instagram", "Amazon", or any website/app:
+CRITICAL: Previous generation failed quality check.
+Issues found: {', '.join(quality['issues'])}
 
-YOU MUST CREATE A FULLY FUNCTIONAL, COMPLETE APPLICATION with:
-1. Full HTML structure with proper meta tags
-2. Complete UI with all sections (header, navigation, main content, sidebar, footer)
-3. Real-looking data and content (sample videos, music, products, posts)
-4. Interactive features with JavaScript
-5. Professional styling with Tailwind CSS
-6. Responsive design that works on all devices
-7. Working buttons, search bars, forms, modals
-8. Sample images using placeholder services (picsum.photos, placehold.co)
+You MUST fix these issues:
+- Include Tailwind CSS
+- Add proper navigation
+- Use responsive classes (md:, lg:, etc.)
+- Add proper spacing with Tailwind utilities
+- Include icons (SVG or icon library)
+- Add images from picsum.photos or placehold.co
+- Include hover states and transitions
 
-OUTPUT FORMAT: Return ONLY a complete HTML file that includes:
-- <!DOCTYPE html> declaration
-- All HTML structure
-- Tailwind CSS via CDN
-- Embedded <style> for custom CSS
-- Embedded <script> for JavaScript functionality
-- NO markdown, NO explanations, NO code blocks - just pure HTML
+Generate a COMPLETE, HIGH-QUALITY implementation."""
 
-IMPORTANT RULES:
-1. Create REAL-LOOKING interfaces, not demos or wireframes
-2. Add sample content that looks authentic
-3. Include hover effects, transitions, animations
+            messages[-1] = {"role": "user", "content": regenerate_prompt}
+            
+            completion = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                temperature=0.3,
+                max_tokens=8000
+            )
+            
+            code = completion.choices[0].message.content
+            if "```" in code:
+                import re
+                code_match = re.search(r'```(?:html)?\n?([\s\S]*?)```', code)
+                if code_match:
+                    code = code_match.group(1)
+            code = code.strip()
+            
+            quality = quality_check(code)
+        
+        return {
+            "code": code,
+            "model_used": "Groq Llama 3.3",
+            "quality_score": quality["score"],
+            "quality_passed": quality["passed"]
+        }
+        
+    except Exception as e:
+        logger.error(f"Build generate error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 4. Make navigation, buttons, and links functional
 5. Add modals, dropdowns, and interactive elements
 6. Use modern design patterns
