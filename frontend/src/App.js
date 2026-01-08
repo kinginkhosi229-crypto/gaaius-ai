@@ -564,25 +564,78 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    // Otherwise, use Groq for code generation
+    // Check if this is a complex app request (YouTube, Spotify, etc.)
+    const isComplexApp = promptLower.includes('youtube') || 
+                        promptLower.includes('spotify') ||
+                        promptLower.includes('netflix') ||
+                        promptLower.includes('twitter') ||
+                        promptLower.includes('instagram') ||
+                        promptLower.includes('amazon') ||
+                        promptLower.includes('facebook') ||
+                        promptLower.includes('tiktok') ||
+                        promptLower.includes('linkedin') ||
+                        promptLower.includes('reddit') ||
+                        promptLower.includes('discord') ||
+                        promptLower.includes('slack') ||
+                        promptLower.includes('airbnb') ||
+                        promptLower.includes('uber') ||
+                        promptLower.includes('like') ||
+                        promptLower.includes('clone') ||
+                        promptLower.includes('similar to') ||
+                        promptLower.includes('build a') ||
+                        promptLower.includes('create a') ||
+                        promptLower.includes('make a') ||
+                        promptLower.includes('app') ||
+                        promptLower.includes('website') ||
+                        promptLower.includes('platform') ||
+                        promptLower.includes('dashboard') ||
+                        promptLower.includes('e-commerce') ||
+                        promptLower.includes('ecommerce') ||
+                        promptLower.includes('shop') ||
+                        promptLower.includes('store') ||
+                        promptLower.includes('blog') ||
+                        promptLower.includes('portfolio') ||
+                        promptLower.includes('landing page');
+    
+    // Use Groq for code generation
     setLoading(true);
-    addTerminalLog("info", `AI generating code for: ${prompt}`);
+    
+    if (isComplexApp) {
+      addTerminalLog("info", `🚀 Building complete application: ${prompt}`);
+      setChatHistory(prev => [...prev, { role: "assistant", content: "🔨 Building your application... This may take a moment as I create a complete, production-ready version." }]);
+    } else {
+      addTerminalLog("info", `AI generating code for: ${prompt}`);
+    }
     
     try {
-      const res = await api.post("/build/generate", { prompt, current_code: projectFiles[activeFile] || htmlContent });
+      const res = await api.post("/build/generate", { 
+        prompt, 
+        current_code: projectFiles["index.html"] || htmlContent 
+      }, { timeout: 120000 }); // 2 minute timeout for complex apps
+      
       if (res.data.code) {
-        // Update the active file or index.html
-        const targetFile = activeFile.endsWith('.html') ? activeFile : 'index.html';
-        setProjectFiles(prev => ({ ...prev, [targetFile]: res.data.code }));
+        // Update index.html with the generated code
+        setProjectFiles(prev => ({ ...prev, "index.html": res.data.code }));
         setHtmlContent(res.data.code);
-        setChatHistory(prev => [...prev, { role: "assistant", content: `✅ Done! I've updated ${targetFile}. Check the preview!` }]);
-        addTerminalLog("success", `Code generated and saved to ${targetFile}`);
-        toast.success("Code updated!");
+        setActiveFile("index.html");
+        setRightPanelTab("preview"); // Switch to preview to show the result
+        
+        if (isComplexApp) {
+          setChatHistory(prev => [...prev, { 
+            role: "assistant", 
+            content: `✅ Your application is ready! I've built a complete, functional version. Check the Preview tab to see it in action!\n\n💡 Tips:\n- Click "Preview" tab to see your app\n- Click "Code" tab to edit the source\n- Use "Save" to keep your project` 
+          }]);
+          addTerminalLog("success", `✅ Application built successfully!`);
+        } else {
+          setChatHistory(prev => [...prev, { role: "assistant", content: `✅ Done! Check the Preview tab to see your changes!` }]);
+          addTerminalLog("success", `Code generated and saved to index.html`);
+        }
+        toast.success(isComplexApp ? "Application built!" : "Code updated!");
       }
     } catch (error) {
-      setChatHistory(prev => [...prev, { role: "assistant", content: "❌ I encountered an issue. Let me try again..." }]);
-      addTerminalLog("error", `Generation failed: ${error.message}`);
-      toast.error("Generation failed");
+      setChatHistory(prev => [...prev, { role: "assistant", content: "❌ I encountered an issue. Please try again with more specific details." }]);
+      addTerminalLog("error", `Generation failed: ${error.message || "Unknown error"}`);
+      toast.error("Generation failed - please try again");
     } finally {
       setLoading(false);
       setPrompt("");
