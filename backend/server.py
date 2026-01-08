@@ -1377,7 +1377,7 @@ Output ONLY the CSV data, no explanations."""
                     
             elif doc_type == "quotation":
                 # QUOTE header
-                story.append(Paragraph("QUOTATION", styles['Title']))
+                story.append(Paragraph("QUOTATION", styles['DocTitle']))
                 story.append(Spacer(1, 10))
                 
                 company = doc_data.get("company", {})
