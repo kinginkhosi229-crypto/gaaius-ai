@@ -19,6 +19,7 @@ import {
   Maximize2, Minimize2
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
