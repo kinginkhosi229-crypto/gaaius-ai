@@ -2012,7 +2012,7 @@ const MainApp = () => {
             {!user && <AdBanner onUpgrade={() => setShowAuth(true)} />}
 
             {/* Input - Fixed at bottom with proper spacing */}
-            <div className="p-4 border-t border-white/10 glass">
+            <div className="p-4 glass">
               <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
                 <div className={`rounded-2xl p-2 flex items-center gap-2 ${ModeConfig.borderColor} border bg-black/40`}>
                   <button type="button" onClick={toggleRecording} className={`p-3 rounded-xl transition-all ${isRecording ? "bg-red-500/20 text-red-400" : "hover:bg-white/5 text-muted-foreground"}`} data-testid="voice-btn">
