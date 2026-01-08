@@ -1070,11 +1070,42 @@ ${combinedHtml}`;
           {/* Panel Content */}
           <div className="flex-1 overflow-hidden">
             {rightPanelTab === "preview" && (
-              <div className="h-full bg-white">
+              <div className="h-full bg-white relative">
+                {/* Fullscreen toggle button */}
+                <button
+                  onClick={() => setIsPreviewFullscreen(true)}
+                  className="absolute top-2 right-2 z-10 bg-black/70 hover:bg-black/90 text-white p-2 rounded-lg transition-all shadow-lg"
+                  title="Enter fullscreen preview"
+                  data-testid="fullscreen-preview-btn"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </button>
                 <iframe
                   srcDoc={buildPreviewHtml()}
                   className="w-full h-full border-0"
                   title="Preview"
+                  sandbox="allow-scripts allow-same-origin"
+                />
+              </div>
+            )}
+            
+            {/* Fullscreen Preview Modal */}
+            {isPreviewFullscreen && (
+              <div className="fixed inset-0 z-50 bg-black" data-testid="fullscreen-preview-modal">
+                <div className="absolute top-4 right-4 z-50 flex gap-2">
+                  <button
+                    onClick={() => setIsPreviewFullscreen(false)}
+                    className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-lg transition-all backdrop-blur-sm flex items-center gap-2"
+                    data-testid="exit-fullscreen-btn"
+                  >
+                    <Minimize2 className="w-5 h-5" />
+                    <span className="text-sm font-medium">Exit Fullscreen</span>
+                  </button>
+                </div>
+                <iframe
+                  srcDoc={buildPreviewHtml()}
+                  className="w-full h-full border-0"
+                  title="Fullscreen Preview"
                   sandbox="allow-scripts allow-same-origin"
                 />
               </div>
