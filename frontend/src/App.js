@@ -2217,7 +2217,7 @@ const MainApp = () => {
         });
       } else if (mode === "image") {
         trackGeneration(); // Track for ads
-        const toastId = toast.loading("Generating image... You can continue using other features");
+        const toastId = toast.loading("Generating image...");
         // Run image generation in background (non-blocking)
         api.post("/image/generate", { prompt: userInput, session_id: currentSession?.id }, { timeout: 300000 })
           .then(res => {
