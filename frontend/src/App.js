@@ -1070,12 +1070,21 @@ const MainApp = () => {
           return [...filtered, { ...tempUserMsg, id: `user-${Date.now()}` }, { id: res.data.id, role: "assistant", content: res.data.content, timestamp: res.data.timestamp }];
         });
       } else if (mode === "image") {
-        const toastId = toast.loading("Generating image...");
-        const res = await api.post("/image/generate", { prompt: userInput, session_id: currentSession?.id });
-        const newGen = { ...res.data, type: "image", url: res.data.image_url || res.data.url };
-        setGenerations(prev => [newGen, ...prev]);
-        toast.dismiss(toastId);
-        toast.success("Image generated!");
+        const toastId = toast.loading("Generating image... You can continue using other features");
+        // Run image generation in background (non-blocking)
+        api.post("/image/generate", { prompt: userInput, session_id: currentSession?.id }, { timeout: 300000 })
+          .then(res => {
+            const newGen = { ...res.data, type: "image", url: res.data.image_url || res.data.url };
+            setGenerations(prev => [newGen, ...prev]);
+            toast.dismiss(toastId);
+            toast.success("Image generated!");
+          })
+          .catch(() => {
+            toast.dismiss(toastId);
+            toast.error("Image generation failed");
+          });
+        setLoading(false);
+        return; // Don't wait
       } else if (mode === "video") {
         const toastId = toast.loading("Generating video... You can continue using other features");
         // Run video generation in background (non-blocking)
