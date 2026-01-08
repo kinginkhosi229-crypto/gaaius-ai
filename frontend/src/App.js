@@ -354,6 +354,130 @@ const BuildPage = ({ showSidebar = false, navigate, user, showAuth, showPro, sho
   const [generatedImages, setGeneratedImages] = useState([]);
   const [activeTab, setActiveTab] = useState("chat");
   const nav = useNavigate();
+  
+  // NEW: Multi-file project support
+  const [projectFiles, setProjectFiles] = useState({
+    "index.html": `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+  <div id="app"></div>
+  <script src="app.js"></script>
+</body>
+</html>`,
+    "styles.css": `/* Custom styles */
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}`,
+    "app.js": `// Main application logic
+console.log('GAAIUS AI Builder - App Started');
+
+document.addEventListener('DOMContentLoaded', () => {
+  const app = document.getElementById('app');
+  app.innerHTML = '<h1 class="text-4xl font-bold text-center py-20">Welcome to Your App</h1>';
+});`
+  });
+  const [activeFile, setActiveFile] = useState("index.html");
+  const [rightPanelTab, setRightPanelTab] = useState("preview"); // preview | code | terminal
+  const [terminalOutput, setTerminalOutput] = useState([
+    { type: "system", text: "GAAIUS AI Builder Terminal v1.0" },
+    { type: "system", text: "Ready for commands..." }
+  ]);
+  const [showFileTree, setShowFileTree] = useState(true);
+
+  // Get file language for Monaco
+  const getLanguage = (filename) => {
+    const ext = filename.split('.').pop();
+    const langMap = {
+      'html': 'html',
+      'css': 'css',
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'json': 'json',
+      'py': 'python',
+      'md': 'markdown'
+    };
+    return langMap[ext] || 'plaintext';
+  };
+
+  // Add terminal log
+  const addTerminalLog = (type, text) => {
+    setTerminalOutput(prev => [...prev, { type, text, timestamp: new Date().toLocaleTimeString() }]);
+  };
+
+  // Create new file
+  const createNewFile = (filename) => {
+    if (projectFiles[filename]) {
+      toast.error("File already exists");
+      return;
+    }
+    const ext = filename.split('.').pop();
+    let defaultContent = "";
+    if (ext === 'html') defaultContent = "<!DOCTYPE html>\n<html>\n<head>\n  <title>New Page</title>\n</head>\n<body>\n  \n</body>\n</html>";
+    if (ext === 'css') defaultContent = "/* New stylesheet */\n";
+    if (ext === 'js') defaultContent = "// New JavaScript file\n";
+    
+    setProjectFiles(prev => ({ ...prev, [filename]: defaultContent }));
+    setActiveFile(filename);
+    addTerminalLog("success", `Created file: ${filename}`);
+    toast.success(`Created ${filename}`);
+  };
+
+  // Delete file
+  const deleteFile = (filename) => {
+    if (Object.keys(projectFiles).length <= 1) {
+      toast.error("Cannot delete the last file");
+      return;
+    }
+    const newFiles = { ...projectFiles };
+    delete newFiles[filename];
+    setProjectFiles(newFiles);
+    if (activeFile === filename) {
+      setActiveFile(Object.keys(newFiles)[0]);
+    }
+    addTerminalLog("warning", `Deleted file: ${filename}`);
+    toast.success(`Deleted ${filename}`);
+  };
+
+  // Update file content
+  const updateFileContent = (content) => {
+    setProjectFiles(prev => ({ ...prev, [activeFile]: content }));
+    // Also update htmlContent if it's index.html for preview compatibility
+    if (activeFile === "index.html") {
+      setHtmlContent(content);
+    }
+  };
+
+  // Build combined HTML for preview (combines all files)
+  const buildPreviewHtml = () => {
+    let html = projectFiles["index.html"] || htmlContent;
+    
+    // Inject CSS if exists
+    if (projectFiles["styles.css"]) {
+      html = html.replace('</head>', `<style>${projectFiles["styles.css"]}</style></head>`);
+    }
+    
+    // Inject JS if exists
+    if (projectFiles["app.js"]) {
+      html = html.replace('</body>', `<script>${projectFiles["app.js"]}</script></body>`);
+    }
+    
+    return html;
+  };
 
   // Generate image using Pollinations AI (free, no API key needed)
   const generateImage = async (imagePrompt) => {
