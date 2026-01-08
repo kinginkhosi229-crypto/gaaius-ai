@@ -458,6 +458,125 @@ class GAAIUSAPITester:
             print(f"   Message: {response.get('message', 'No message')}")
         return success
 
+    def test_document_generation(self):
+        """Test document generation endpoint as requested"""
+        success, response = self.run_test(
+            "Document Generation (Invoice)",
+            "POST",
+            "document/generate",
+            200,
+            data={
+                "prompt": "Create a simple invoice for $100",
+                "document_type": "invoice",
+                "document_name": "test_invoice"
+            },
+            timeout=60
+        )
+        
+        if success:
+            print(f"   Generated document: {response.get('filename', 'Unknown')}")
+            print(f"   File URL: {response.get('file_url', '')[:50]}...")
+            print(f"   Message: {response.get('message', 'No message')}")
+        return success
+
+    def test_build_generate(self):
+        """Test build generation endpoint as requested"""
+        success, response = self.run_test(
+            "Build Generation (Button Component)",
+            "POST",
+            "build/generate",
+            200,
+            data={
+                "prompt": "create a button component",
+                "current_code": ""
+            },
+            timeout=60
+        )
+        
+        if success:
+            print(f"   Generated code length: {len(response.get('code', ''))}")
+            print(f"   Model Used: {response.get('model_used', 'Unknown')}")
+            if response.get('code'):
+                print(f"   Code preview: {response['code'][:100]}...")
+        return success
+
+    def test_chat_flow(self):
+        """Test complete chat flow: create session then chat"""
+        # First create a session
+        session_success, session_response = self.run_test(
+            "Create Session for Chat",
+            "POST",
+            "sessions?name=Test",
+            200
+        )
+        
+        if not session_success or 'id' not in session_response:
+            return False
+            
+        session_id = session_response['id']
+        print(f"   Created session: {session_id}")
+        
+        # Then test chat
+        chat_success, chat_response = self.run_test(
+            "Chat with Session",
+            "POST",
+            "chat",
+            200,
+            data={
+                "session_id": session_id,
+                "message": "Hello"
+            },
+            timeout=60
+        )
+        
+        if chat_success:
+            print(f"   AI Response: {chat_response.get('content', '')[:100]}...")
+            print(f"   Model Used: {chat_response.get('model_used', 'Unknown')}")
+        
+        return session_success and chat_success
+
+    def run_requested_tests(self):
+        """Run the specific tests requested in the review"""
+        print("🚀 Starting GAAIUS AI Backend API Tests - Review Request")
+        print(f"🌐 Testing against: {self.base_url}")
+        print("=" * 60)
+
+        # Test the 4 specific endpoints requested
+        print("\n🔍 Testing Requested Endpoints...")
+        
+        # 1. Health endpoint
+        self.test_health_check()
+        
+        # 2. Document generation
+        self.test_document_generation()
+        
+        # 3. Build generation  
+        self.test_build_generate()
+        
+        # 4. Chat flow (session + chat)
+        self.test_chat_flow()
+
+        # Print summary
+        print("\n" + "=" * 60)
+        print("📊 TEST SUMMARY")
+        print("=" * 60)
+        print(f"Total Tests: {self.tests_run}")
+        print(f"Passed: {self.tests_passed}")
+        print(f"Failed: {len(self.failed_tests)}")
+        print(f"Success Rate: {(self.tests_passed/self.tests_run)*100:.1f}%")
+        
+        if self.failed_tests:
+            print("\n❌ FAILED TESTS:")
+            for test in self.failed_tests:
+                print(f"   • {test['test']}: {test['details']}")
+        
+        if self.passed_tests:
+            print("\n✅ PASSED TESTS:")
+            for test in self.passed_tests:
+                print(f"   • {test}")
+
+        return self.tests_passed == self.tests_run
+
     def run_all_tests(self):
         """Run all API tests"""
         print("🚀 Starting GAAIUS AI Backend API Tests")
