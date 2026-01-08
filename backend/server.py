@@ -1446,7 +1446,7 @@ Output ONLY the CSV data, no explanations."""
                     
             elif doc_type == "receipt":
                 # RECEIPT header
-                story.append(Paragraph("RECEIPT", styles['Title']))
+                story.append(Paragraph("RECEIPT", styles['DocTitle']))
                 story.append(Spacer(1, 10))
                 
                 company = doc_data.get("company", {})
