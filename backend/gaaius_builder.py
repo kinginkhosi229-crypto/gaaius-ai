@@ -384,17 +384,19 @@ def generate_blueprint(prompt: str, template_key: Optional[str] = None) -> Dict[
     prompt_lower = prompt.lower()
     
     # Auto-detect template if not specified
+    # Order matters - more specific keywords should be checked first
     if not template_key:
-        if any(kw in prompt_lower for kw in ['dashboard', 'admin', 'analytics', 'stats']):
-            template_key = 'saas_dashboard'
-        elif any(kw in prompt_lower for kw in ['shop', 'store', 'ecommerce', 'product', 'cart']):
-            template_key = 'ecommerce'
-        elif any(kw in prompt_lower for kw in ['admin', 'cms', 'backend', 'manage']):
-            template_key = 'admin_panel'
-        elif any(kw in prompt_lower for kw in ['ai', 'chat', 'assistant', 'gpt', 'llm']):
-            template_key = 'ai_tool'
-        elif any(kw in prompt_lower for kw in ['crypto', 'trading', 'wallet', 'finance', 'coinbase', 'binance']):
+        # Check crypto/finance first (before dashboard catches it)
+        if any(kw in prompt_lower for kw in ['crypto', 'trading', 'wallet', 'finance', 'coinbase', 'binance', 'portfolio', 'token', 'blockchain']):
             template_key = 'crypto_finance'
+        elif any(kw in prompt_lower for kw in ['shop', 'store', 'ecommerce', 'e-commerce', 'product', 'cart', 'checkout', 'buy']):
+            template_key = 'ecommerce'
+        elif any(kw in prompt_lower for kw in ['ai', 'chat', 'assistant', 'gpt', 'llm', 'chatbot', 'bot']):
+            template_key = 'ai_tool'
+        elif any(kw in prompt_lower for kw in ['admin panel', 'cms', 'backend', 'manage content', 'crud']):
+            template_key = 'admin_panel'
+        elif any(kw in prompt_lower for kw in ['dashboard', 'admin', 'analytics', 'stats', 'metrics']):
+            template_key = 'saas_dashboard'
     
     # Get base template or create custom blueprint
     if template_key and template_key in APP_TEMPLATES:
