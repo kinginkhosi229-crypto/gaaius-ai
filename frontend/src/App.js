@@ -700,24 +700,34 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (res.data.code) {
         // Update index.html with the generated code
-        const autoName = generateProjectName();
+        const autoName = res.data.blueprint?.app_name || generateProjectName();
         setProjectFiles(prev => ({ ...prev, "index.html": res.data.code }));
         setHtmlContent(res.data.code);
         setActiveFile("index.html");
         setRightPanelTab("preview"); // Switch to preview to show the result
         
-        // Show quality score
+        // Show quality score and blueprint info
         const qualityEmoji = res.data.quality_score >= 80 ? "🟢" : res.data.quality_score >= 60 ? "🟡" : "🔴";
+        const templateInfo = res.data.blueprint?.template ? `📋 Template: ${res.data.blueprint.template}` : "";
+        
         addTerminalLog("info", `${qualityEmoji} Quality Score: ${res.data.quality_score || 75}/100`);
+        if (res.data.quality_checks?.length > 0) {
+          addTerminalLog("success", `✓ Checks passed: ${res.data.quality_checks.join(", ")}`);
+        }
+        if (res.data.quality_issues?.length > 0) {
+          res.data.quality_issues.forEach(issue => {
+            addTerminalLog(issue.type === 'critical' ? 'error' : 'warning', issue.msg);
+          });
+        }
         
         if (isComplexApp) {
           setChatHistory(prev => [...prev, { 
             role: "assistant", 
-            content: `✅ **${autoName}** is ready!\n\n${qualityEmoji} Quality Score: ${res.data.quality_score || 75}/100\n\n📱 **Export Options:**\n• Web: Download HTML/CSS/JS\n• Desktop: Export as Electron (EXE/DMG)\n• Android: Export via Capacitor\n• iOS: Export via Capacitor\n\n💡 Click Preview to see your app!` 
+            content: `✅ **${autoName}** is ready!\n\n${qualityEmoji} Quality Score: ${res.data.quality_score || 75}/100\n${templateInfo}\n\n📱 **Export Options:**\n• Web: Download HTML/CSS/JS\n• Desktop: Export as Electron (EXE/DMG)\n• Android: Export via Capacitor\n• iOS: Export via Capacitor\n\n💡 Click Preview to see your app!` 
           }]);
-          addTerminalLog("success", `✅ ${autoName} built successfully!`);
+          addTerminalLog("success", `✅ ${autoName} built with ${res.data.blueprint?.template || 'custom'} template!`);
         } else {
-          setChatHistory(prev => [...prev, { role: "assistant", content: `✅ Done! Quality: ${res.data.quality_score || 75}/100` }]);
+          setChatHistory(prev => [...prev, { role: "assistant", content: `✅ Done! Quality: ${res.data.quality_score || 75}/100 ${templateInfo}` }]);
           addTerminalLog("success", `Code generated and saved to index.html`);
         }
         toast.success(isComplexApp ? "Application built!" : "Code updated!");
