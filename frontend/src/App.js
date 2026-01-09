@@ -918,6 +918,20 @@ ${combinedHtml}`;
                   <div className="text-center py-6">
                     <Hammer className="w-12 h-12 text-orange-400/50 mx-auto mb-4" />
                     <p className="text-sm text-muted-foreground mb-4">Build ANY app or website</p>
+                    
+                    {/* Quick Templates */}
+                    <div className="mb-4 p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+                      <p className="text-xs text-violet-400 font-semibold mb-2">📋 Quick Templates</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => setPrompt("Build a SaaS dashboard with stats, charts, and user management")} className="text-xs p-2 bg-white/5 hover:bg-white/10 rounded-lg text-left transition">📊 Dashboard</button>
+                        <button onClick={() => setPrompt("Create an e-commerce store with products, cart, and checkout")} className="text-xs p-2 bg-white/5 hover:bg-white/10 rounded-lg text-left transition">🛒 E-commerce</button>
+                        <button onClick={() => setPrompt("Build an AI chat interface with sidebar and message history")} className="text-xs p-2 bg-white/5 hover:bg-white/10 rounded-lg text-left transition">🤖 AI Chat</button>
+                        <button onClick={() => setPrompt("Create a crypto portfolio tracker with assets and charts")} className="text-xs p-2 bg-white/5 hover:bg-white/10 rounded-lg text-left transition">💰 Crypto App</button>
+                        <button onClick={() => setPrompt("Build an admin panel with content management and user roles")} className="text-xs p-2 bg-white/5 hover:bg-white/10 rounded-lg text-left transition">⚙️ Admin Panel</button>
+                        <button onClick={() => setPrompt("Create a modern landing page for a startup")} className="text-xs p-2 bg-white/5 hover:bg-white/10 rounded-lg text-left transition">🚀 Landing Page</button>
+                      </div>
+                    </div>
+                    
                     <div className="space-y-2 text-xs text-left">
                       <p className="text-orange-400/70 cursor-pointer hover:text-orange-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Build a YouTube clone with video grid, sidebar, and search")}>🎬 "Build a YouTube clone"</p>
                       <p className="text-orange-400/70 cursor-pointer hover:text-orange-400 p-2 rounded hover:bg-white/5" onClick={() => setPrompt("Create a Spotify-like music player with playlists and player controls")}>🎵 "Create a Spotify clone"</p>
