@@ -45,6 +45,17 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 from huggingface_hub import InferenceClient
 hf_client = InferenceClient(api_key=HF_TOKEN)
 
+# Import GAAIUS Build Brain v2
+from gaaius_builder import (
+    APP_TEMPLATES, 
+    generate_blueprint, 
+    quality_gate_v2, 
+    GAAIUS_BUILD_PROMPT_V2,
+    BLUEPRINT_SYSTEM_PROMPT,
+    get_template_code,
+    get_available_templates
+)
+
 # Create the main app
 app = FastAPI()
 
