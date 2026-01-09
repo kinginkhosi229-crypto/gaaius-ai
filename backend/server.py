@@ -1963,25 +1963,50 @@ def quality_check(html_code):
 
 @api_router.post("/build/generate")
 async def build_generate(data: dict, user = Depends(get_current_user)):
-    """GAAIUS BUILD BRAIN - Production-Grade Application Builder"""
+    """GAAIUS BUILD BRAIN v2.0 - Blueprint-First Platform Assembler"""
     try:
         raw_prompt = data.get("prompt", "")
         current_code = data.get("current_code", "")
+        template_key = data.get("template", None)
+        use_blueprint = data.get("use_blueprint", True)
         
-        # STEP 1: Compile user prompt into detailed spec
+        # STEP 1: Generate Blueprint
+        blueprint = generate_blueprint(raw_prompt, template_key)
+        logger.info(f"Blueprint generated: {blueprint.get('template_name', 'Custom')}")
+        
+        # STEP 2: Try template-based generation first
+        template_code = None
+        if blueprint.get('template_used') and use_blueprint:
+            template_code = get_template_code(
+                blueprint['template_used'],
+                blueprint.get('app_name', 'MyApp')
+            )
+        
+        # STEP 3: Compile user prompt into detailed spec
         compiled_prompt = compile_user_prompt(raw_prompt)
         
-        # STEP 2: Build with quality system prompt
+        # STEP 4: Build with enhanced system prompt
         messages = [
-            {"role": "system", "content": GAAIUS_SYSTEM_PROMPT},
+            {"role": "system", "content": GAAIUS_BUILD_PROMPT_V2},
         ]
         
-        if current_code and len(current_code) > 100:
-            messages.append({"role": "user", "content": f"CURRENT CODE:\n{current_code}\n\nUPDATE REQUEST:\n{compiled_prompt}\n\nReturn the complete updated HTML file."})
-        else:
-            messages.append({"role": "user", "content": compiled_prompt})
+        # Include blueprint context
+        blueprint_context = f"""
+APP BLUEPRINT:
+- Name: {blueprint.get('app_name', 'MyApp')}
+- Type: {blueprint.get('app_type', 'custom')}
+- Template: {blueprint.get('template_name', 'Custom')}
+- Pages: {', '.join([p['name'] for p in blueprint.get('pages', [])])}
+- Features: {', '.join(blueprint.get('features', []))}
+- Theme: {blueprint.get('theme', 'dark-modern')}
+"""
         
-        # STEP 3: Generate code
+        if current_code and len(current_code) > 100:
+            messages.append({"role": "user", "content": f"{blueprint_context}\n\nCURRENT CODE:\n{current_code}\n\nUPDATE REQUEST:\n{compiled_prompt}\n\nReturn the complete updated HTML file."})
+        else:
+            messages.append({"role": "user", "content": f"{blueprint_context}\n\nBUILD REQUEST:\n{compiled_prompt}"})
+        
+        # STEP 5: Generate code
         completion = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=messages,
@@ -1993,7 +2018,6 @@ async def build_generate(data: dict, user = Depends(get_current_user)):
         
         # Clean up code blocks
         if "```" in code:
-            import re
             code_match = re.search(r'```(?:html)?\n?([\s\S]*?)```', code)
             if code_match:
                 code = code_match.group(1)
@@ -2008,28 +2032,30 @@ async def build_generate(data: dict, user = Depends(get_current_user)):
             if html_start > 0:
                 code = code[html_start:]
         
-        # STEP 4: Quality Gate
-        quality = quality_check(code)
+        # STEP 6: Enhanced Quality Gate
+        quality = quality_gate_v2(code, blueprint)
         
-        # STEP 5: If quality too low, regenerate with stricter prompt
-        if not quality["passed"] and quality["score"] < 50:
-            logger.info(f"Quality score {quality['score']} too low, regenerating...")
+        # STEP 7: Auto-regenerate if quality too low
+        if not quality["passed"] and quality["score"] < 60:
+            logger.info(f"Quality score {quality['score']} too low, regenerating with stricter requirements...")
             
+            issues_text = ', '.join([i['msg'] for i in quality.get('issues', [])])
             regenerate_prompt = f"""{compiled_prompt}
 
-CRITICAL: Previous generation failed quality check.
-Issues found: {', '.join(quality['issues'])}
+CRITICAL QUALITY REQUIREMENTS (Previous generation scored {quality['score']}/100):
+Issues to fix: {issues_text}
 
-You MUST fix these issues:
-- Include Tailwind CSS
-- Add proper navigation
-- Use responsive classes (md:, lg:, etc.)
-- Add proper spacing with Tailwind utilities
-- Include icons (SVG or icon library)
-- Add images from picsum.photos or placehold.co
-- Include hover states and transitions
+MANDATORY FIXES:
+1. Include Tailwind CSS CDN
+2. Add proper semantic HTML structure (nav, header, main, aside, footer)
+3. Use responsive classes (sm:, md:, lg:, xl:)
+4. Add Lucide icons (include script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js")
+5. Use proper spacing (p-4, p-6, gap-4, etc.)
+6. Add hover states and smooth transitions
+7. Generate at least 3000 characters of code
+8. Include real content, not placeholders
 
-Generate a COMPLETE, HIGH-QUALITY implementation."""
+Generate a COMPLETE, PRODUCTION-READY implementation following the blueprint."""
 
             messages[-1] = {"role": "user", "content": regenerate_prompt}
             
@@ -2042,19 +2068,25 @@ Generate a COMPLETE, HIGH-QUALITY implementation."""
             
             code = completion.choices[0].message.content
             if "```" in code:
-                import re
                 code_match = re.search(r'```(?:html)?\n?([\s\S]*?)```', code)
                 if code_match:
                     code = code_match.group(1)
             code = code.strip()
             
-            quality = quality_check(code)
+            quality = quality_gate_v2(code, blueprint)
         
         return {
             "code": code,
-            "model_used": "Groq Llama 3.3",
+            "model_used": "Groq Llama 3.3 (GAAIUS BUILD BRAIN v2)",
             "quality_score": quality["score"],
-            "quality_passed": quality["passed"]
+            "quality_passed": quality["passed"],
+            "quality_checks": quality.get("checks_passed", []),
+            "quality_issues": quality.get("issues", []),
+            "blueprint": {
+                "app_name": blueprint.get("app_name"),
+                "template": blueprint.get("template_name"),
+                "app_type": blueprint.get("app_type")
+            }
         }
         
     except Exception as e:
