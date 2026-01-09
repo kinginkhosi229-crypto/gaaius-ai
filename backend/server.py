@@ -2093,6 +2093,28 @@ Generate a COMPLETE, PRODUCTION-READY implementation following the blueprint."""
         logger.error(f"Build generate error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/build/templates")
+async def get_templates():
+    """Get list of available app templates"""
+    return {"templates": get_available_templates()}
+
+@api_router.post("/build/blueprint")
+async def generate_app_blueprint(data: dict, user = Depends(get_current_user)):
+    """Generate a structured blueprint from user prompt (Blueprint-First approach)"""
+    try:
+        prompt = data.get("prompt", "")
+        template_key = data.get("template", None)
+        
+        blueprint = generate_blueprint(prompt, template_key)
+        
+        return {
+            "blueprint": blueprint,
+            "available_templates": get_available_templates()
+        }
+    except Exception as e:
+        logger.error(f"Blueprint generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/build/generate-full")
 async def build_generate_full(data: dict, user = Depends(get_current_user)):
     """Generate a full web project with multiple files"""
