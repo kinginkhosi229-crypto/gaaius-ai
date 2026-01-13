@@ -24,7 +24,7 @@ emergentintegrations==0.1.0
 et_xmlfile==2.0.0
 fastapi==0.110.1
 fastuuid==0.14.0
-filelock==3.20.1
+filelock==3.20.3
 flake8==7.3.0
 frozenlist==1.8.0
 fsspec==2025.12.0
